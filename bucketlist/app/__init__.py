@@ -6,7 +6,7 @@ import json
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../../data/database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:su@postgressdb@localhost/bucketlist' #'sqlite:///../../data/database.db'
 db = SQLAlchemy(app)
 
 # public access
