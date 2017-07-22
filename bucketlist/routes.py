@@ -1,20 +1,29 @@
 """This module contains the routes for the application"""
 
-from flask import Flask, request
-from flask_sqlalchemy import SQLAlchemy
-import json
+from flask import request, json
+from .app import *
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:su@postgressdb@localhost/bucketlist' #'sqlite:///../../data/database.db'
-db = SQLAlchemy(app)
+db.drop_all()
+db.create_all()
 
 # public access
 
 @app.route("/auth/register", methods=['POST'])
 def register():
-    """register new application user"""
-    return json.dumps(dict(status=200, code="OK")), 200
+    """Register new application user"""
+    first_name = request.json.get("first_name")
+    last_name = request.json.get("last_name")
+    username = request.json.get("username")
+    email = request.json.get("email")
+    password = request.json.get("password")
+
+    user = User(first_name, last_name, username, email, password)
+    db.session.add(user)
+    db.session.commit()
+
+    created_user = User.query.filter_by(email = email).first()
+    
+    return json.jsonify(id=created_user.id), 201
 
 @app.route("/auth/login", methods=['POST'])
 def login():

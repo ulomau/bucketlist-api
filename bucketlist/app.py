@@ -1,7 +1,15 @@
 """"""
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 import datetime
 from passlib.hash import sha256_crypt
-from bucketlist.app import app, db
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:su@postgressdb@localhost/bucketlist' #'sqlite:///../../data/database.db'
+db = SQLAlchemy(app)
+
 
 class User(db.Model):
     __tablename__ = "user"

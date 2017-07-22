@@ -1,6 +1,5 @@
 import unittest
-from bucketlist.app import db
-from bucketlist.models import User, Bucket, BucketItem
+from bucketlist import *
 
 db.drop_all()
 db.create_all()
