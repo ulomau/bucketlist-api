@@ -68,6 +68,7 @@ class BucketItem(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     title = db.Column(db.String(140))
     description = db.Column(db.String(250))
+    is_complete = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     bucket_id = db.Column(db.Integer, db.ForeignKey('bucket.id'))
     
