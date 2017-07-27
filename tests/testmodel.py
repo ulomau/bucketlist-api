@@ -54,6 +54,25 @@ class TestUserModel(unittest.TestCase):
         created_user = User.query.get(self.user.id)
         self.assertEqual(self.user.email, created_user.email)
     
+    def test_can_verify_password(self):
+        self.assertTrue(self.user.verify_password('theSecurePassword'))
+        self.assertFalse(self.user.verify_password('theUnSecurePassword'))
+        
+
+    def test_can_check_if_email_exists(self):
+        uname_exists1 = User.has_email('jdoe@example.com')
+        self.assertTrue(uname_exists1)
+
+        uname_exists2 = User.has_email('jbosco@example.com')
+        self.assertFalse(uname_exists2)
+    
+    def test_can_check_if_username_exists(self):
+        uname_exists1 = User.has_username('jdoe')
+        self.assertTrue(uname_exists1)
+
+        uname_exists2 = User.has_username('jbosco')
+        self.assertFalse(uname_exists2)
+    
     def test_can_delete_user(self):
         user = User.query.get(self.user.id)
         db.session.delete(user)
