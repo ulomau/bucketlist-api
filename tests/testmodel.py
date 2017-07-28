@@ -1,4 +1,4 @@
-import unittest
+import unittest, datetime
 from bucketlist import *
 
 db.drop_all()
@@ -37,7 +37,8 @@ class TestUserModel(unittest.TestCase):
         # Add a BucketItem
         self.title = "To do 1"
         description="To do description"
-        item = BucketItem(self.title, description, bucket=self.bucket)
+        due_date = datetime.date(2017, 7, 25)
+        item = BucketItem(self.title, description, due_date, bucket=self.bucket)
 
         db.session.add(item)
         db.session.commit()

@@ -125,11 +125,49 @@ def bucketlists_id(id):
     return json.jsonify(id=bucket.id, name=bucket.name, description=bucket.description)
 
 
-@app.route("/bucketlists/<_id>/items", methods=['POST'])
-def edit_bucket_item(_id):
-    """edits a bucket list item"""
-    pass
-@app.route("/bucketlists/<_id>/items/<item_id>", methods=['PUT', 'DELETE'])
-def main(_id, item_id):
+@app.route("/bucketlists/<int:id>/items", methods=['POST'])
+def edit_bucket_item(id):
+    """Creates a bucket item"""
+    bucket = Bucket.query.get(id)
+    
+    if bucket == None:
+        return json.jsonify(error='Bucket does not extist'), 404
+
+    body = get_request_body(request)
+    title = body.get('title')
+    description = body.get('description')
+    due_date = body.get('due_date')
+
+    if title == None:
+        return json.jsonify(error="title"), 400
+
+    if description == None:
+        return json.jsonify(error="description"), 400
+
+    if due_date == None:
+        return json.jsonify(error="due_date"), 400
+
+    item = BucketItem(title, description, due_date, bucket = bucket)
+    db.session.add(item)
+    db.session.commit()
+
+    result = dict()
+    result['id'] = item.id 
+    result['title'] = item.title 
+    result['description'] = item.description
+    result['is_complete'] = item.is_complete
+    result['due_date'] = item.due_date
+    
+    return json.jsonify(result), 201
+
+@app.route("/bucketlists/<bucket_id>/items/<item_id>", methods=['PUT', 'DELETE'])
+def main(bucket_id, item_id):
     """do sth"""
-    pass
+    bucket = Bucket.query.get(bucket_id)
+    item = BucketItem.query.get(item_id)
+    
+    if bucket == None:
+        return json.jsonify(error='Bucket does not extist'), 404
+
+    if item == None:
+        return json.jsonify(error='BucketItem does not extist'), 404

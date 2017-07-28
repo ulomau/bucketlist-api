@@ -76,11 +76,13 @@ class BucketItem(db.Model):
     title = db.Column(db.String(140))
     description = db.Column(db.String(250))
     is_complete = db.Column(db.Boolean, default=False, nullable=False)
+    due_date = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     bucket_id = db.Column(db.Integer, db.ForeignKey('bucket.id'))
     
-    def __init__(self, title, description, bucket = None):
+    def __init__(self, title, description, due_date, bucket = None):
         self.title = title
         self.description = description
         self.bucket = bucket
+        self.due_date = due_date
         
