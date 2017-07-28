@@ -86,8 +86,11 @@ def bucketlists():
         db.session.add(bucket)
         db.session.commit()
 
-        return json.jsonify(id = bucket.id, name = bucket.name, description=bucket.description), 201
+        result = dict(id = bucket.id, name = bucket.name, description=bucket.description)
 
+        return json.jsonify(result), 201
+
+    # request.method == 'GET'
     user_id = get_user_id(request)
 
     if user_id == None:
@@ -97,12 +100,24 @@ def bucketlists():
         return json.jsonify(error = 'Unknown user'), 404
 
     buckets = Bucket.query.filter_by(user_id = user_id)
-    result = list()
+    bucket_list = list()
 
     for bucket in buckets:
-        result.append(dict(id=bucket.id, name=bucket.name, description=bucket.description))
-    
-    return json.jsonify(result)
+        _bucket = dict(id=bucket.id, name=bucket.name, description=bucket.description, items = list())
+        
+        for item in bucket.items:
+            _item = dict()
+            _item['id'] = item.id 
+            _item['title'] = item.title 
+            _item['description'] = item.description
+            _item['is_complete'] = item.is_complete
+            _item['due_date'] = item.due_date
+            _item['created_at'] = item.created_at
+            _bucket['items'].append(_item)
+
+        bucket_list.append(_bucket)
+
+    return json.jsonify(bucket_list)
 
 @app.route("/bucketlists/<int:id>", methods = ['GET', 'PUT', 'DELETE'])
 def bucketlists_id(id):
@@ -122,7 +137,18 @@ def bucketlists_id(id):
         db.session.commit()
         return json.jsonify(id=bucket.id)
 
-    return json.jsonify(id=bucket.id, name=bucket.name, description=bucket.description)
+    bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description, items=list())
+
+    for item in bucket.items:
+        _item = dict()
+        _item['id'] = item.id 
+        _item['title'] = item.title 
+        _item['description'] = item.description
+        _item['is_complete'] = item.is_complete
+        _item['due_date'] = item.due_date
+        _item['created_at'] = item.created_at
+        bucket_result['items'].append(_item)
+    return json.jsonify(bucket_result)
 
 
 @app.route("/bucketlists/<int:id>/items", methods=['POST'])
