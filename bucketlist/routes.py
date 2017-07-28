@@ -160,7 +160,7 @@ def edit_bucket_item(id):
     
     return json.jsonify(result), 201
 
-@app.route("/bucketlists/<bucket_id>/items/<item_id>", methods=['PUT', 'DELETE'])
+@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT', 'DELETE'])
 def main(bucket_id, item_id):
     """do sth"""
     bucket = Bucket.query.get(bucket_id)
@@ -171,3 +171,43 @@ def main(bucket_id, item_id):
 
     if item == None:
         return json.jsonify(error='BucketItem does not extist'), 404
+
+    if request.method == 'DELETE':
+        db.session.delete(item)
+        db.session.commit()
+        return json.jsonify(id=item.id)
+
+    # request.method == 'PUT':
+    body = get_request_body(request)
+    title = body.get('title')
+    description = body.get('description')
+    is_complete = body.get('is_complete')
+    due_date = body.get('due_date')
+
+    try:
+        is_complete = int(is_complete)
+    except:
+        is_complete = False
+
+    if not title == None:
+        item.title = title
+
+    if not description == None:
+        item.description = description
+
+    if not due_date == None:
+        item.due_date = due_date
+    
+    if not is_complete == None:
+        item.is_complete = bool(is_complete)
+
+    db.session.commit()
+
+    result = dict()
+    result['id'] = item.id 
+    result['title'] = item.title 
+    result['description'] = item.description
+    result['is_complete'] = item.is_complete
+    result['due_date'] = item.due_date
+    
+    return json.jsonify(result)
