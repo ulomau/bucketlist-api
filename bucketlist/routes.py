@@ -3,19 +3,36 @@
 from flask import request, json
 from .app import *
 
-db.drop_all()
-db.create_all()
-
 # public access
+
+def get_request_body(request):
+    """Returns the request body"""
+    content_type = request.content_type
+   
+    if content_type == 'application/json':
+        return request.json
+    return request.form
 
 @app.route("/auth/register", methods=['POST'])
 def register():
     """Register new application user"""
-    first_name = request.json.get("first_name")
-    last_name = request.json.get("last_name")
-    username = request.json.get("username")
-    email = request.json.get("email")
-    password = request.json.get("password")
+    body = get_request_body(request)
+
+    first_name = body.get("first_name")
+    last_name = body.get("last_name")
+    username = body.get("username")
+    email = body.get("email")
+    password = body.get("password")
+
+    email_exists = User.has_email(email)
+
+    if email_exists:
+        return json.jsonify(error = 'email'), 409
+
+    username_exists = User.has_username(username)
+
+    if username_exists:
+        return json.jsonify(error = 'username'), 409
 
     user = User(first_name, last_name, username, email, password)
     db.session.add(user)
@@ -29,10 +46,12 @@ def register():
 def login():
     """login application user"""
     pass
+
 @app.route("/auth/logout", methods=['POST'])
 def logout():
     """logout application user"""
     pass
+
 @app.route("/auth/reset-password", methods=['POST'])
 def reset_password():
     """reset application user's password"""
@@ -42,7 +61,10 @@ def reset_password():
 @app.route("/bucketlists", methods = ['GET', 'POST'])
 def bucketlists():
     """do sth"""
-    pass
+    if request.method == 'POST':
+
+        pass
+
 @app.route("/bucketlists/<_id>", methods = ['GET', 'POST', 'PUT', 'DELETE'])
 def bucketlists_id(_id):
     pass
