@@ -104,9 +104,27 @@ def bucketlists():
     
     return json.jsonify(result)
 
-@app.route("/bucketlists/<_id>", methods = ['GET', 'POST', 'PUT', 'DELETE'])
-def bucketlists_id(_id):
-    pass
+@app.route("/bucketlists/<int:id>", methods = ['GET', 'PUT', 'DELETE'])
+def bucketlists_id(id):
+    bucket = Bucket.query.get(id)
+
+    if bucket == None:
+        return json.jsonify(error = 'Bucket does not exist'), 404
+
+    if request.method == 'PUT':
+        body = get_request_body(request)
+        bucket.name = body.get('name')
+        bucket.description = body.get('description')
+        db.session.commit()
+    
+    if request.method == 'DELETE':
+        db.session.delete(bucket)
+        db.session.commit()
+        return json.jsonify(id=bucket.id)
+
+    return json.jsonify(id=bucket.id, name=bucket.name, description=bucket.description)
+
+
 @app.route("/bucketlists/<_id>/items", methods=['POST'])
 def edit_bucket_item(_id):
     """edits a bucket list item"""
