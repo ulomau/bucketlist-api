@@ -45,8 +45,15 @@ class User(db.Model):
         user = User.query.filter_by(username = username).first()
         return False if user == None else True
 
-    
-    
+    @staticmethod
+    def user_exists(id):
+        try:
+            id = int(id)
+        except:
+            return False
+
+        user = User.query.get(id)
+        return False if user == None else True
 
 class Bucket(db.Model):
     __tablename__ = "bucket"

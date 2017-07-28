@@ -6,12 +6,19 @@ from .app import *
 # public access
 
 def get_request_body(request):
-    """Returns the request body"""
+    """Returns the request body."""
     content_type = request.content_type
    
     if content_type == 'application/json':
         return request.json
     return request.form
+
+def get_user_id(request):
+    """Gets user_id from the query string or from the request body, for POST requests."""
+    if request.method == 'POST':
+        return get_request_body(request).get('user_id')
+    
+    return request.args.get('user_id')
 
 @app.route("/auth/register", methods=['POST'])
 def register():
@@ -62,8 +69,40 @@ def reset_password():
 def bucketlists():
     """do sth"""
     if request.method == 'POST':
+        body = get_request_body(request)
+        user_id = body.get('user_id')
+        name = body.get('name')
+        description = body.get('description')
 
-        pass
+        if user_id == None:
+            return json.jsonify(error = 'Unknown user. you must provide the `user_id`'), 400
+
+        user = User.query.get(user_id)
+
+        if user == None:
+            return json.jsonify(error = 'Unknown user'), 404
+
+        bucket = Bucket(name, description, owner = user)
+        db.session.add(bucket)
+        db.session.commit()
+
+        return json.jsonify(id = bucket.id, name = bucket.name, description=bucket.description), 201
+
+    user_id = get_user_id(request)
+
+    if user_id == None:
+        return json.jsonify(error = 'You should specify user_id in the query string'), 400
+    
+    if not User.user_exists(user_id):
+        return json.jsonify(error = 'Unknown user'), 404
+
+    buckets = Bucket.query.filter_by(user_id = user_id)
+    result = list()
+
+    for bucket in buckets:
+        result.append(dict(id=bucket.id, name=bucket.name, description=bucket.description))
+    
+    return json.jsonify(result)
 
 @app.route("/bucketlists/<_id>", methods = ['GET', 'POST', 'PUT', 'DELETE'])
 def bucketlists_id(_id):
