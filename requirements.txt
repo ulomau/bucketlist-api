@@ -1,8 +1,11 @@
 astroid==1.5.3
+cffi==1.10.0
 click==6.7
 colorama==0.3.9
+cryptography==1.7.2
 Flask==0.12.2
 Flask-SQLAlchemy==2.2
+idna==2.5
 isort==4.2.15
 itsdangerous==0.24
 Jinja2==2.9.6
@@ -12,6 +15,9 @@ mccabe==0.6.1
 passlib==1.7.1
 pbr==3.1.1
 psycopg2==2.7.1
+pyasn1==0.3.1
+pycparser==2.18
+PyJWT==1.5.2
 pylint==1.7.2
 six==1.10.0
 SQLAlchemy==1.1.11

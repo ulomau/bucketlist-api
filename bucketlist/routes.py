@@ -1,9 +1,39 @@
 """This module contains the routes for the application"""
 
-from flask import request, json
+import random, string, datetime
+import jwt
+from flask import request, json, make_response
+from functools import wraps
 from .app import *
 
+RANDOM_STRING = ''.join(random.choice(string.ascii_letters + string.digits) for x in range(32))
+# app.config['SECRET_KEY'] = RANDOM_STRING
+app.config['SECRET_KEY'] = 'RANDOM_STRING'
 # public access
+
+def authenticate(f):
+    @wraps(f)
+    def inner(*args, **kwargs):
+        token = request.args.get('token')
+        if not token:
+            return json.jsonify(message="Token is missing"), 401
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'])
+            now = str(datetime.datetime.utcnow())
+            
+            if now > data['expiry']:
+                return json.jsonify(message="Expired token"), 401
+        except:
+            return json.jsonify(message="Invalid token"), 401
+
+        user = User.query.get(data['user_id'])
+
+        if not user:
+            return json.jsonify(message="Invalid token"), 401
+
+        return f(user, *args, **kwargs)
+    return inner
 
 def get_request_body(request):
     """Returns the request body."""
@@ -34,12 +64,12 @@ def register():
     email_exists = User.has_email(email)
 
     if email_exists:
-        return json.jsonify(error = 'email'), 409
+        return json.jsonify(message = 'email'), 409
 
     username_exists = User.has_username(username)
 
     if username_exists:
-        return json.jsonify(error = 'username'), 409
+        return json.jsonify(message = 'username'), 409
 
     user = User(first_name, last_name, username, email, password)
     db.session.add(user)
@@ -51,8 +81,29 @@ def register():
 
 @app.route("/auth/login", methods=['POST'])
 def login():
-    """login application user"""
-    pass
+    """Login application user"""
+    auth = request.authorization
+
+    if not auth or not auth.username or not auth.password:
+        return make_response('Could not verify', 401, {'WWW-Authenticate':'Basic Realm="Login required"'})
+
+    user = User.query.filter_by(username=auth.username).first()
+
+    if not user:
+        user = User.query.filter_by(email=auth.username).first()
+
+    if not user:
+        return make_response('Invalid login credentials', 401, {'WWW-Authenticate':'Basic Realm="Login required"'})
+
+    password_matches = user.verify_password(auth.password)
+
+    if not password_matches:
+        return make_response('Invalid login credentials', 401, {'WWW-Authenticate':'Basic Realm="Login required"'})
+
+    # password matched login user
+    expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=24*60*7)
+    token = jwt.encode({'user_id':user.id, 'expiry': str(expiry)}, app.config['SECRET_KEY'])
+    return json.jsonify(token=token.decode("UTF-8"))
 
 @app.route("/auth/logout", methods=['POST'])
 def logout():
@@ -66,22 +117,13 @@ def reset_password():
 
 # private access
 @app.route("/bucketlists", methods = ['GET', 'POST'])
-def bucketlists():
+@authenticate
+def bucketlists(user):
     """do sth"""
     if request.method == 'POST':
         body = get_request_body(request)
-        user_id = body.get('user_id')
         name = body.get('name')
         description = body.get('description')
-
-        if user_id == None:
-            return json.jsonify(error = 'Unknown user. you must provide the `user_id`'), 400
-
-        user = User.query.get(user_id)
-
-        if user == None:
-            return json.jsonify(error = 'Unknown user'), 404
-
         bucket = Bucket(name, description, owner = user)
         db.session.add(bucket)
         db.session.commit()
@@ -91,15 +133,9 @@ def bucketlists():
         return json.jsonify(result), 201
 
     # request.method == 'GET'
-    user_id = get_user_id(request)
-
-    if user_id == None:
-        return json.jsonify(error = 'You should specify user_id in the query string'), 400
     
-    if not User.user_exists(user_id):
-        return json.jsonify(error = 'Unknown user'), 404
 
-    buckets = Bucket.query.filter_by(user_id = user_id)
+    buckets = Bucket.query.filter_by(user_id = user.id)
     bucket_list = list()
 
     for bucket in buckets:
@@ -120,11 +156,13 @@ def bucketlists():
     return json.jsonify(bucket_list)
 
 @app.route("/bucketlists/<int:id>", methods = ['GET', 'PUT', 'DELETE'])
-def bucketlists_id(id):
-    bucket = Bucket.query.get(id)
+@authenticate
+def bucketlists_id(user, id):
+    
+    bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
-        return json.jsonify(error = 'Bucket does not exist'), 404
+        return json.jsonify(message = 'Bucket does not exist'), 404
 
     if request.method == 'PUT':
         body = get_request_body(request)
@@ -150,11 +188,11 @@ def bucketlists_id(id):
         bucket_result['items'].append(_item)
     return json.jsonify(bucket_result)
 
-
 @app.route("/bucketlists/<int:id>/items", methods=['POST'])
-def edit_bucket_item(id):
+@authenticate
+def add_bucket_item(user, id):
     """Creates a bucket item"""
-    bucket = Bucket.query.get(id)
+    bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
     
     if bucket == None:
         return json.jsonify(error='Bucket does not extist'), 404
@@ -187,13 +225,15 @@ def edit_bucket_item(id):
     return json.jsonify(result), 201
 
 @app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT', 'DELETE'])
-def main(bucket_id, item_id):
+@authenticate
+def bucket_items(user, bucket_id, item_id):
     """do sth"""
-    bucket = Bucket.query.get(bucket_id)
-    item = BucketItem.query.get(item_id)
+    bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
     
     if bucket == None:
         return json.jsonify(error='Bucket does not extist'), 404
+
+    item = BucketItem.query.filter_by(bucket_id = bucket.id, id = item_id).first()
 
     if item == None:
         return json.jsonify(error='BucketItem does not extist'), 404
