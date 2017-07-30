@@ -58,6 +58,19 @@ class TestUserModel(unittest.TestCase):
     def test_can_verify_password(self):
         self.assertTrue(self.user.verify_password('theSecurePassword'))
         self.assertFalse(self.user.verify_password('theUnSecurePassword'))
+    
+    def test_can_change_password(self):
+        # make sure old password validates correctly
+        self.assertTrue(self.user.verify_password('theSecurePassword'))
+
+        # change pasword
+        new_password = 'theNewPassword'
+        self.user.set_password(new_password)
+        db.session.commit()
+        user = User.query.get(self.user.id)
+        
+        self.assertTrue(user.verify_password(new_password))
+        self.assertFalse(user.verify_password('theSecurePassword'))
 
     def test_can_check_if_email_exists(self):
         uname_exists1 = User.has_email('jdoe@example.com')

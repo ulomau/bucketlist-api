@@ -133,9 +133,26 @@ def logout(user):
     return json.jsonify()
 
 @app.route("/auth/reset-password", methods=['POST'])
-def reset_password():
-    """reset application user's password"""
-    pass
+@authenticate
+def reset_password(user):
+    """Reset application user's password"""
+    body = get_request_body(request)
+    old_password = body.get('old_password')
+    new_password = body.get('new_password')
+
+    if not old_password:
+        return json.jsonify(message = 'You must provide old password', missing='old_password'), 400
+
+    if not new_password:
+        return json.jsonify(message = 'You must provide new password', missing='new_password'), 400
+
+    if not user.verify_password(old_password):
+        return json.jsonify(message = 'Invalid old password')
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    return json.jsonify()
 
 # private access
 @app.route("/bucketlists", methods = ['GET', 'POST'])
