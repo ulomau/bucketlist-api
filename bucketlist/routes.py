@@ -23,7 +23,7 @@ def authenticate(f):
             token = request.args.get('token')
 
         if not token:
-            return json.jsonify(message="Token is missing"), 401
+            return json.jsonify(message="Token is parameter"), 401
 
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'])
@@ -141,10 +141,10 @@ def reset_password(user):
     new_password = body.get('new_password')
 
     if not old_password:
-        return json.jsonify(message = 'You must provide old password', missing='old_password'), 400
+        return json.jsonify(message = 'You must provide old password', parameter='old_password'), 400
 
     if not new_password:
-        return json.jsonify(message = 'You must provide new password', missing='new_password'), 400
+        return json.jsonify(message = 'You must provide new password', parameter='new_password'), 400
 
     if not user.verify_password(old_password):
         return json.jsonify(message = 'Invalid old password')
@@ -158,11 +158,18 @@ def reset_password(user):
 @app.route("/bucketlists", methods = ['GET', 'POST'])
 @authenticate
 def bucketlists(user):
-    """do sth"""
+    """Adds or retrieves buckets"""
     if request.method == 'POST':
         body = get_request_body(request)
         name = body.get('name')
         description = body.get('description')
+
+        if not name:
+            return json.jsonify(message='Missing required parameter', parameter='name'), 400
+        
+        if not description:
+            return json.jsonify(message='Missing required parameter', parameter='description'), 400
+        
         bucket = Bucket(name, description, owner = user)
         db.session.add(bucket)
         db.session.commit()
@@ -242,13 +249,13 @@ def add_bucket_item(user, id):
     due_date = body.get('due_date')
 
     if title == None:
-        return json.jsonify(error="title"), 400
+        return json.jsonify(message='Missing required parameter', parameter="title"), 400
 
     if description == None:
-        return json.jsonify(error="description"), 400
+        return json.jsonify(message='Missing required parameter', parameter="description"), 400
 
     if due_date == None:
-        return json.jsonify(error="due_date"), 400
+        return json.jsonify(message='Missing required parameter', parameter="due_date"), 400
 
     item = BucketItem(title, description, due_date, bucket = bucket)
     db.session.add(item)
