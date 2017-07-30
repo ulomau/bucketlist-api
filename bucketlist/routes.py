@@ -27,14 +27,18 @@ def authenticate(f):
 
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'])
-            now = str(datetime.datetime.utcnow())
             
-            if now > data['expiry']:
-                return json.jsonify(message="Expired token"), 401
         except:
             return json.jsonify(message="Invalid token"), 401
 
         user = User.query.get(data['user_id'])
+        now = datetime.datetime.utcnow()
+        print(user.token)
+        if not token == user.token:
+            return json.jsonify(message="Invalid token"), 401
+
+        if now > user.token_expiry:
+            return json.jsonify(message="Expired token"), 401
 
         if not user:
             return json.jsonify(message="Invalid token"), 401
@@ -109,13 +113,24 @@ def login():
 
     # password matched login user
     expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=24*60*7)
-    token = jwt.encode({'user_id':user.id, 'expiry': str(expiry)}, app.config['SECRET_KEY'])
-    return json.jsonify(token=token.decode("UTF-8"))
+    token = jwt.encode({'user_id':user.id, 'expiry':str(expiry)}, app.config['SECRET_KEY'])
+    token = token.decode('UTF-8')
+
+    user.token = token
+    user.token_expiry = expiry
+    db.session.commit()
+
+    return json.jsonify(token=token)
 
 @app.route("/auth/logout", methods=['POST'])
-def logout():
-    """logout application user"""
-    pass
+@authenticate
+def logout(user):
+    """Logout application user"""
+    expiry = datetime.datetime.utcnow() - datetime.timedelta(minutes=20)
+    #user.token = ''
+    user.token_expiry = expiry
+    db.session.commit()
+    return json.jsonify()
 
 @app.route("/auth/reset-password", methods=['POST'])
 def reset_password():
