@@ -9,12 +9,19 @@ from .app import *
 RANDOM_STRING = ''.join(random.choice(string.ascii_letters + string.digits) for x in range(32))
 # app.config['SECRET_KEY'] = RANDOM_STRING
 app.config['SECRET_KEY'] = 'RANDOM_STRING'
+app.config['TOKEN_NAME'] = 'x-token'
 # public access
 
 def authenticate(f):
     @wraps(f)
     def inner(*args, **kwargs):
-        token = request.args.get('token')
+        token = None
+        if app.config['TOKEN_NAME'] in request.headers:
+            token = request.headers[app.config['TOKEN_NAME']]
+
+        if not token:
+            token = request.args.get('token')
+
         if not token:
             return json.jsonify(message="Token is missing"), 401
 
