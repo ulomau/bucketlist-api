@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/john555/bucketlist-api.svg?branch=master)](https://travis-ci.org/john555/bucketlist-api)
+
 # Bucketlist API (Challenge 3)
 
 Keep track of your goals or dreams. Don't forget to change the world. 
