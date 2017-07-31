@@ -202,10 +202,16 @@ def bucketlists(user):
 
     # request.method == 'GET'
     limit, page = get_pagination_params(request)
+    query = request.args.get('q')
 
     offset = page * limit
 
-    buckets = Bucket.query.filter(Bucket.user_id == user.id).limit(limit).offset(offset)
+    buckets = Bucket.query.filter(Bucket.user_id == user.id)
+
+    if query:
+        buckets = buckets.filter(Bucket.name.like('%' + query + '%'))
+
+    buckets = buckets.limit(limit).offset(offset)
     bucket_list = list()
 
     for bucket in buckets:
@@ -225,8 +231,17 @@ def bucketlists_id(user, id):
 
     if request.method == 'PUT':
         body = get_request_body(request)
-        bucket.name = body.get('name')
-        bucket.description = body.get('description')
+        name = body.get('name')
+        description = body.get('description')
+
+        if not name:
+            return jsonify(message='Missing required parameter', parameter="name"), 400
+
+        if not description:
+            return jsonify(message='Missing required parameter', parameter="description"), 400
+
+        bucket.name = name
+        bucket.description = description
         db.session.commit()
     
     if request.method == 'DELETE':
