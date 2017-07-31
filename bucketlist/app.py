@@ -2,6 +2,8 @@
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_script import Manager
+from flask_migrate import Migrate, MigrateCommand
 import datetime
 from passlib.hash import sha256_crypt
 
@@ -9,6 +11,10 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:su@postgressdb@localhost/bucketlist' #'sqlite:///../../data/database.db'
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+manager = Manager(app)
+
+manager.add_command('db', MigrateCommand)
 
 class User(db.Model):
     __tablename__ = "user"
@@ -113,4 +119,3 @@ class BucketItem(db.Model):
         result['due_date'] = self.due_date
         result['created_at'] = self.created_at
         return result
-        
