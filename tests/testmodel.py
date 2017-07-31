@@ -168,20 +168,20 @@ class TestUserModel(unittest.TestCase):
         user_dict['first_name'] = self.user.first_name
         user_dict['last_name'] = self.user.last_name
         user_dict['user_name'] = self.user.username
-        self.assertDictEqual(user_dict, json.loads(self.user.json()))
+        self.assertDictEqual(user_dict, self.user.dict())
 
         bucket_dict = dict()
         bucket_dict['id'] = self.bucket.id
         bucket_dict['name'] = self.bucket.name
         bucket_dict['description'] = self.bucket.description
-        bucket_dict['created_at'] = str(self.bucket.created_at)
-        self.assertDictEqual(bucket_dict, json.loads(self.bucket.json()))
+        bucket_dict['created_at'] = self.bucket.created_at
+        self.assertDictEqual(bucket_dict, self.bucket.dict())
 
         item_dict = dict()
         item_dict['id'] = self.item.id
         item_dict['title'] = self.item.title
         item_dict['description'] = self.item.description
         item_dict['is_complete'] = self.item.is_complete
-        item_dict['due_date'] = str(self.item.due_date)
-        item_dict['created_at'] = str(self.item.created_at)
-        self.assertDictEqual(item_dict, json.loads(self.item.json()))
+        item_dict['due_date'] = self.item.due_date
+        item_dict['created_at'] = self.item.created_at
+        self.assertDictEqual(item_dict, self.item.dict())

@@ -139,7 +139,7 @@ def login():
     user.token_expiry = expiry
     db.session.commit()
 
-    return jsonify(token=token, user = user.json())
+    return jsonify(token=token, user = user.dict())
 
 @app.route("/auth/logout", methods=['POST'])
 @authenticate
@@ -237,7 +237,7 @@ def bucketlists_id(user, id):
     items = BucketItem.query.filter(BucketItem.bucket_id == bucket.id).limit(limit).offset(limit * page)
     
     for item in items:
-        bucket_result['items'].append(item.json())
+        bucket_result['items'].append(item.dict())
 
     return jsonify(bucket_result)
 
