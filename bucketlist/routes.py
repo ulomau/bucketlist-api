@@ -33,7 +33,10 @@ def authenticate(f):
 
         user = User.query.get(data['user_id'])
         now = datetime.datetime.utcnow()
-        print(user.token)
+        
+        if not user:
+            return jsonify(message="Invalid token"), 401
+
         if not token == user.token:
             return jsonify(message="Invalid token"), 401
 
