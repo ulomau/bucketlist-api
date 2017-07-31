@@ -97,12 +97,12 @@ def register():
     email_exists = User.has_email(email)
 
     if email_exists:
-        return jsonify(message = 'email'), 409
+        return jsonify(message = 'Duplicate parameter', parameter = 'email'), 409
 
     username_exists = User.has_username(username)
 
     if username_exists:
-        return jsonify(message = 'username'), 409
+        return jsonify(message = 'Duplicate parameter', parameter = 'username'), 409
 
     user = User(first_name, last_name, username, email, password)
     db.session.add(user)
@@ -110,7 +110,7 @@ def register():
 
     created_user = User.query.filter_by(email = email).first()
     
-    return jsonify(id=created_user.id), 201
+    return jsonify(created_user.dict()), 201
 
 @app.route("/auth/login", methods=['POST'])
 def login():
