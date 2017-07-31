@@ -2,7 +2,7 @@
 
 import random, string, datetime
 import jwt
-from flask import request, json, make_response
+from flask import request, jsonify, make_response
 from functools import wraps
 from .app import *
 
@@ -23,25 +23,25 @@ def authenticate(f):
             token = request.args.get('token')
 
         if not token:
-            return json.jsonify(message="Token is parameter"), 401
+            return jsonify(message="Token is parameter"), 401
 
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'])
             
         except:
-            return json.jsonify(message="Invalid token"), 401
+            return jsonify(message="Invalid token"), 401
 
         user = User.query.get(data['user_id'])
         now = datetime.datetime.utcnow()
         print(user.token)
         if not token == user.token:
-            return json.jsonify(message="Invalid token"), 401
+            return jsonify(message="Invalid token"), 401
 
         if now > user.token_expiry:
-            return json.jsonify(message="Expired token"), 401
+            return jsonify(message="Expired token"), 401
 
         if not user:
-            return json.jsonify(message="Invalid token"), 401
+            return jsonify(message="Invalid token"), 401
 
         return f(user, *args, **kwargs)
     return inner
@@ -75,12 +75,12 @@ def register():
     email_exists = User.has_email(email)
 
     if email_exists:
-        return json.jsonify(message = 'email'), 409
+        return jsonify(message = 'email'), 409
 
     username_exists = User.has_username(username)
 
     if username_exists:
-        return json.jsonify(message = 'username'), 409
+        return jsonify(message = 'username'), 409
 
     user = User(first_name, last_name, username, email, password)
     db.session.add(user)
@@ -88,7 +88,7 @@ def register():
 
     created_user = User.query.filter_by(email = email).first()
     
-    return json.jsonify(id=created_user.id), 201
+    return jsonify(id=created_user.id), 201
 
 @app.route("/auth/login", methods=['POST'])
 def login():
@@ -120,7 +120,7 @@ def login():
     user.token_expiry = expiry
     db.session.commit()
 
-    return json.jsonify(token=token)
+    return jsonify(token=token, user = user.json())
 
 @app.route("/auth/logout", methods=['POST'])
 @authenticate
@@ -130,7 +130,7 @@ def logout(user):
     #user.token = ''
     user.token_expiry = expiry
     db.session.commit()
-    return json.jsonify()
+    return jsonify()
 
 @app.route("/auth/reset-password", methods=['POST'])
 @authenticate
@@ -141,18 +141,18 @@ def reset_password(user):
     new_password = body.get('new_password')
 
     if not old_password:
-        return json.jsonify(message = 'You must provide old password', parameter='old_password'), 400
+        return jsonify(message = 'You must provide old password', parameter='old_password'), 400
 
     if not new_password:
-        return json.jsonify(message = 'You must provide new password', parameter='new_password'), 400
+        return jsonify(message = 'You must provide new password', parameter='new_password'), 400
 
     if not user.verify_password(old_password):
-        return json.jsonify(message = 'Invalid old password')
+        return jsonify(message = 'Invalid old password')
 
     user.set_password(new_password)
     db.session.commit()
 
-    return json.jsonify()
+    return jsonify()
 
 # private access
 @app.route("/bucketlists", methods = ['GET', 'POST'])
@@ -165,10 +165,10 @@ def bucketlists(user):
         description = body.get('description')
 
         if not name:
-            return json.jsonify(message='Missing required parameter', parameter='name'), 400
+            return jsonify(message='Missing required parameter', parameter='name'), 400
         
         if not description:
-            return json.jsonify(message='Missing required parameter', parameter='description'), 400
+            return jsonify(message='Missing required parameter', parameter='description'), 400
         
         bucket = Bucket(name, description, owner = user)
         db.session.add(bucket)
@@ -176,7 +176,7 @@ def bucketlists(user):
 
         result = dict(id = bucket.id, name = bucket.name, description=bucket.description)
 
-        return json.jsonify(result), 201
+        return jsonify(result), 201
 
     # request.method == 'GET'
     
@@ -185,21 +185,10 @@ def bucketlists(user):
     bucket_list = list()
 
     for bucket in buckets:
-        _bucket = dict(id=bucket.id, name=bucket.name, description=bucket.description, items = list())
-        
-        for item in bucket.items:
-            _item = dict()
-            _item['id'] = item.id 
-            _item['title'] = item.title 
-            _item['description'] = item.description
-            _item['is_complete'] = item.is_complete
-            _item['due_date'] = item.due_date
-            _item['created_at'] = item.created_at
-            _bucket['items'].append(_item)
-
+        _bucket = dict(id=bucket.id, name=bucket.name, description=bucket.description)
         bucket_list.append(_bucket)
 
-    return json.jsonify(bucket_list)
+    return jsonify(bucket_list)
 
 @app.route("/bucketlists/<int:id>", methods = ['GET', 'PUT', 'DELETE'])
 @authenticate
@@ -208,7 +197,7 @@ def bucketlists_id(user, id):
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
-        return json.jsonify(message = 'Bucket does not exist'), 404
+        return jsonify(message = 'Bucket does not exist'), 404
 
     if request.method == 'PUT':
         body = get_request_body(request)
@@ -219,20 +208,10 @@ def bucketlists_id(user, id):
     if request.method == 'DELETE':
         db.session.delete(bucket)
         db.session.commit()
-        return json.jsonify(id=bucket.id)
+        return jsonify(id=bucket.id)
 
-    bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description, items=list())
-
-    for item in bucket.items:
-        _item = dict()
-        _item['id'] = item.id 
-        _item['title'] = item.title 
-        _item['description'] = item.description
-        _item['is_complete'] = item.is_complete
-        _item['due_date'] = item.due_date
-        _item['created_at'] = item.created_at
-        bucket_result['items'].append(_item)
-    return json.jsonify(bucket_result)
+    bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description)
+    return jsonify(bucket_result)
 
 @app.route("/bucketlists/<int:id>/items", methods=['POST'])
 @authenticate
@@ -241,7 +220,7 @@ def add_bucket_item(user, id):
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
     
     if bucket == None:
-        return json.jsonify(error='Bucket does not extist'), 404
+        return jsonify(error='Bucket does not extist'), 404
 
     body = get_request_body(request)
     title = body.get('title')
@@ -249,13 +228,13 @@ def add_bucket_item(user, id):
     due_date = body.get('due_date')
 
     if title == None:
-        return json.jsonify(message='Missing required parameter', parameter="title"), 400
+        return jsonify(message='Missing required parameter', parameter="title"), 400
 
     if description == None:
-        return json.jsonify(message='Missing required parameter', parameter="description"), 400
+        return jsonify(message='Missing required parameter', parameter="description"), 400
 
     if due_date == None:
-        return json.jsonify(message='Missing required parameter', parameter="due_date"), 400
+        return jsonify(message='Missing required parameter', parameter="due_date"), 400
 
     item = BucketItem(title, description, due_date, bucket = bucket)
     db.session.add(item)
@@ -268,7 +247,7 @@ def add_bucket_item(user, id):
     result['is_complete'] = item.is_complete
     result['due_date'] = item.due_date
     
-    return json.jsonify(result), 201
+    return jsonify(result), 201
 
 @app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT', 'DELETE'])
 @authenticate
@@ -277,17 +256,17 @@ def bucket_items(user, bucket_id, item_id):
     bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
     
     if bucket == None:
-        return json.jsonify(error='Bucket does not extist'), 404
+        return jsonify(error='Bucket does not extist'), 404
 
     item = BucketItem.query.filter_by(bucket_id = bucket.id, id = item_id).first()
 
     if item == None:
-        return json.jsonify(error='BucketItem does not extist'), 404
+        return jsonify(error='BucketItem does not extist'), 404
 
     if request.method == 'DELETE':
         db.session.delete(item)
         db.session.commit()
-        return json.jsonify(id=item.id)
+        return jsonify(id=item.id)
 
     # request.method == 'PUT':
     body = get_request_body(request)
@@ -322,4 +301,4 @@ def bucket_items(user, bucket_id, item_id):
     result['is_complete'] = item.is_complete
     result['due_date'] = item.due_date
     
-    return json.jsonify(result)
+    return jsonify(result)

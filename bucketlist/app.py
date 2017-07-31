@@ -1,6 +1,7 @@
 """"""
 
 from flask import Flask
+import json
 from flask_sqlalchemy import SQLAlchemy
 import datetime
 from passlib.hash import sha256_crypt
@@ -38,6 +39,13 @@ class User(db.Model):
     def verify_password(self, password):
         return sha256_crypt.verify(password, self.password_hash)
     
+    def json(self):
+        result = dict()
+        result['first_name'] = self.first_name
+        result['last_name'] = self.last_name
+        result['user_name'] = self.username
+        return json.dumps(result)
+
     @staticmethod
     def has_email(email):
         user = User.query.filter_by(email = email).first()
@@ -72,6 +80,14 @@ class Bucket(db.Model):
         self.name = name
         self.description = description
         self.owner = owner
+    
+    def json(self):
+        result = dict()
+        result['id'] = self.id
+        result['name'] = self.name
+        result['description'] = self.description
+        result['created_at'] = str(self.created_at)
+        return json.dumps(result)
         
 class BucketItem(db.Model):
     __tablename__ = "bucket_item"
@@ -88,4 +104,14 @@ class BucketItem(db.Model):
         self.description = description
         self.bucket = bucket
         self.due_date = due_date
+
+    def json(self):
+        result = dict()
+        result['id'] = self.id
+        result['title'] = self.title
+        result['description'] = self.description
+        result['is_complete'] = self.is_complete
+        result['due_date'] = str(self.due_date)
+        result['created_at'] = str(self.created_at)
+        return json.dumps(result)
         
