@@ -61,6 +61,25 @@ def get_user_id(request):
     
     return request.args.get('user_id')
 
+def get_pagination_params(request):
+    limit = request.args.get('limit')
+    page = request.args.get('page')
+    
+    try:
+        limit = int(limit)
+    except:
+        limit = 12
+
+    try:
+        page = int(page)
+    except:
+         page = 0
+    
+    limit = 0 if limit < 0 else limit
+    page = 0 if page < 0 else page
+
+    return limit, page
+
 @app.route("/auth/register", methods=['POST'])
 def register():
     """Register new application user"""
@@ -179,9 +198,11 @@ def bucketlists(user):
         return jsonify(result), 201
 
     # request.method == 'GET'
-    
+    limit, page = get_pagination_params(request)
 
-    buckets = Bucket.query.filter_by(user_id = user.id)
+    offset = page * limit
+
+    buckets = Bucket.query.filter(Bucket.user_id == user.id).limit(limit).offset(offset)
     bucket_list = list()
 
     for bucket in buckets:
@@ -211,6 +232,13 @@ def bucketlists_id(user, id):
         return jsonify(id=bucket.id)
 
     bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description)
+    bucket_result['items'] = list()
+    limit, page = get_pagination_params(request)
+    items = BucketItem.query.filter(BucketItem.bucket_id == bucket.id).limit(limit).offset(limit * page)
+    
+    for item in items:
+        bucket_result['items'].append(item.json())
+
     return jsonify(bucket_result)
 
 @app.route("/bucketlists/<int:id>/items", methods=['POST'])
