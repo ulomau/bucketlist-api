@@ -6,6 +6,9 @@ from flask import request, jsonify, make_response
 from sqlalchemy import func, or_
 from functools import wraps
 from .app import *
+from flasgger import Swagger
+
+Swagger(app)
 
 RANDOM_STRING = ''.join(random.choice(string.ascii_letters + string.digits) for x in range(32))
 # app.config['SECRET_KEY'] = RANDOM_STRING
@@ -24,7 +27,7 @@ def authenticate(f):
             token = request.args.get('token')
 
         if not token:
-            return jsonify(message="Token is parameter"), 401
+            return jsonify(message="Missing token"), 401
 
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'])
@@ -86,14 +89,97 @@ def get_pagination_params(request):
 
 @app.route("/auth/register", methods=['POST'])
 def register():
-    """Register new application user"""
+    """
+	Registers new application user
+    ---
+    tags:
+        - User account
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: user registration data
+          in: body
+          required: true
+          description: Information about the new user.
+          type: string
+          schema:
+            type: object
+            required:
+                - first_name
+                - last_name
+                - username
+                - email
+                - password
+            properties:
+                first_name:
+                    type: string
+                last_name:
+                    type: string
+                username:
+                    type: string
+                email:
+                    type: string
+                password:
+                    type: string
+    responses:
+        201:
+            description: New user was created
+            schema:
+              type: object
+              properties:
+                first_name:
+                    type: string
+                last_name:
+                    type: string
+                username:
+                    type: string
+        400:
+            description: Missing property error
+            schema:
+              type: object
+              properties:
+                message:
+                    type: string
+                    description: A description of the error
+                parameter:
+                    type: string
+                    description: The name of the missing property
+        409:
+            description: Duplicate username or email error
+            schema:
+              type: object
+              properties:
+                message:
+                    type: string
+                    description: A description of the error
+                parameter:
+                    type: string
+                    description: The name of the duplicate parameter
+    """
     body = get_request_body(request)
-
+    print(body)
     first_name = body.get("first_name")
     last_name = body.get("last_name")
     username = body.get("username")
     email = body.get("email")
     password = body.get("password")
+
+    if not first_name:
+         return jsonify(message = 'Missing parameter', parameter = 'first_name'), 400
+
+    if not last_name:
+         return jsonify(message = 'Missing parameter', parameter = 'first_name'), 400
+
+    if not username:
+         return jsonify(message = 'Missing parameter', parameter = 'username'), 400
+
+    if not email:
+         return jsonify(message = 'Missing parameter', parameter = 'email'), 400
+
+    if not password:
+         return jsonify(message = 'Missing parameter', parameter = 'password'), 400
 
     email_exists = User.has_email(email)
 
@@ -115,24 +201,98 @@ def register():
 
 @app.route("/auth/login", methods=['POST'])
 def login():
-    """Login application user"""
+    """
+    Logins in application user
+    ---
+    tags:
+        - User account
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: user login data
+          in: body
+          required: true
+          description: User login information
+          type: object
+          schema:
+            type: object
+            required:
+                - username
+                - password
+            properties:
+                username:
+                    type: string
+                password:
+                    type: string
+    responses:
+        201:
+            description: Login was successful
+            schema:
+              type: object
+              properties:
+                token:
+                    type: string
+                user:
+                    type: object
+                    schema:
+                        properties:
+                            first_name:
+                                type: string
+                            last_name:
+                                type: string
+                            username:
+                                type: string
+        400:
+            description: Missing property error
+            schema:
+              type: object
+              properties:
+                message:
+                    type: string
+                    description: A description of the error
+                parameter:
+                    type: string
+                    description: The name of the missing property
+        409:
+            description: Duplicate username or email error
+            schema:
+              type: object
+              properties:
+                message:
+                    type: string
+                    description: A description of the error
+                parameter:
+                    type: string
+                    description: The name of the duplicate parameter
+    """
     auth = request.authorization
 
-    if not auth or not auth.username or not auth.password:
-        return make_response('Could not verify', 401, {'WWW-Authenticate':'Basic Realm="Login required"'})
+    if not auth:
+        auth = get_request_body(request)
+        username = auth.get('username')
+        password = auth.get('password')
+    else:
+        username = auth.username
+        password = auth.password
 
-    user = User.query.filter_by(username=auth.username).first()
+    if not username:
+        return jsonify(message = 'Missing parameter', parameter = 'username'), 400
+
+    if not password:
+        return jsonify(message = 'Missing parameter', parameter = 'password'), 400
+
+    user = User.query.filter_by(username=username).first()
 
     if not user:
-        user = User.query.filter_by(email=auth.username).first()
+        user = User.query.filter_by(email=username).first()
 
     if not user:
-        return make_response('Invalid login credentials', 401, {'WWW-Authenticate':'Basic Realm="Login required"'})
+        return jsonify(message = "Invalid login credentials"), 401
 
-    password_matches = user.verify_password(auth.password)
-
-    if not password_matches:
-        return make_response('Invalid login credentials', 401, {'WWW-Authenticate':'Basic Realm="Login required"'})
+    if not user.verify_password(password):
+        return jsonify(message = "Invalid login credentials"), 401
 
     # password matched login user
     expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=24*60*7)
@@ -148,7 +308,43 @@ def login():
 @app.route("/auth/logout", methods=['POST'])
 @authenticate
 def logout(user):
-    """Logout application user"""
+    """
+    Logout application user
+    ---
+    tags:
+        - User account
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          required: true
+          description: User's token
+          type: string
+
+    responses:
+        200:
+            description: User logout was successful
+            schema:
+                type: object
+        
+        400:
+            description: Missing token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+    """
     expiry = datetime.datetime.utcnow() - datetime.timedelta(minutes=20)
     #user.token = ''
     user.token_expiry = expiry
@@ -158,7 +354,53 @@ def logout(user):
 @app.route("/auth/reset-password", methods=['POST'])
 @authenticate
 def reset_password(user):
-    """Reset application user's password"""
+    """
+    Resets application user's password
+    ---
+    tags:
+        - User account
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          required: true
+          description: User's token
+          type: string
+        - name: payload
+          in: body
+          required: true
+          description: User's token
+          type: object
+          schema:
+            properties:
+                old_password:
+                    type: string
+                new_password:
+                    type: string
+    responses:
+        200:
+            description: Password reset was successful
+            schema:
+                type: object
+        
+        400:
+            description: Missing token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+    """
     body = get_request_body(request)
     old_password = body.get('old_password')
     new_password = body.get('new_password')
@@ -181,7 +423,16 @@ def reset_password(user):
 @app.route("/bucketlists", methods = ['GET', 'POST'])
 @authenticate
 def bucketlists(user):
-    """Adds or retrieves buckets"""
+    """
+    Adds or returns buckets
+    ---
+    tags:
+        - Buckets
+    post:
+        parameters:
+            - name: name
+            - name: description
+    """
     if request.method == 'POST':
         body = get_request_body(request)
         name = body.get('name')
@@ -225,7 +476,14 @@ def bucketlists(user):
 @app.route("/bucketlists/<int:id>", methods = ['GET', 'PUT', 'DELETE'])
 @authenticate
 def bucketlists_id(user, id):
-    
+    """
+    Returns, editsor deletes buckets
+    ---
+    tags:
+        - Buckets
+    parameters:
+        - name: q
+    """
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
@@ -272,7 +530,12 @@ def bucketlists_id(user, id):
 @app.route("/bucketlists/<int:id>/items", methods=['POST'])
 @authenticate
 def add_bucket_item(user, id):
-    """Creates a bucket item"""
+    """
+    Creates a new bucket item
+    ---
+    tags:
+        - Bucket items
+    """
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
     
     if bucket == None:
@@ -308,7 +571,15 @@ def add_bucket_item(user, id):
 @app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT', 'DELETE'])
 @authenticate
 def bucket_items(user, bucket_id, item_id):
-    """do sth"""
+    """
+    Edits or deletes items from a bucket
+    ---
+    tags:
+        - Bucket items
+    parameters:
+        - name: bucket_id
+        - name: item_id
+    """
     bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
     
     if bucket == None:
