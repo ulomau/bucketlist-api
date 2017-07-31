@@ -428,10 +428,40 @@ def bucketlists(user):
     ---
     tags:
         - Buckets
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          description: The user's token
+          required: true
+          type: string
     post:
         parameters:
             - name: name
             - name: description
+        responses:
+            201:
+                description: A new bucket was added
+                schema:
+                    type: object
+    responses:    
+        400:
+            description: Missing token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
     """
     if request.method == 'POST':
         body = get_request_body(request)
@@ -477,12 +507,37 @@ def bucketlists(user):
 @authenticate
 def bucketlists_id(user, id):
     """
-    Returns, editsor deletes buckets
+    Returns, edits or deletes buckets
     ---
     tags:
         - Buckets
     parameters:
         - name: q
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          description: The user's token
+          required: true
+          type: string
+    responses:    
+        400:
+            description: Missing token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
     """
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
@@ -535,6 +590,31 @@ def add_bucket_item(user, id):
     ---
     tags:
         - Bucket items
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          description: The user's token
+          required: true
+          type: string
+    responses:    
+        400:
+            description: Missing token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
     """
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
     
@@ -576,10 +656,43 @@ def bucket_items(user, bucket_id, item_id):
     ---
     tags:
         - Bucket items
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
     parameters:
+        - name: x-token
+          in: header
+          description: The user's token
+          required: true
+          type: string
         - name: bucket_id
+          in: path
+          description: Bucket id
+          required: true
+          type: integer
         - name: item_id
+          in: path
+          description: Bucket item id
+          type: integer
+          required: true
+    responses:    
+        400:
+            description: Missing token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
     """
+    
     bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
     
     if bucket == None:
