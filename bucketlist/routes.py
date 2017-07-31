@@ -213,7 +213,7 @@ def bucketlists(user):
         query = query.replace(' ', '%')
         buckets = buckets.filter(func.lower(Bucket.name).like('%' + func.lower(query) + '%'))
     
-    buckets = buckets.limit(limit).offset(offset)
+    buckets = buckets.order_by(Bucket.created_at).limit(limit).offset(offset)
     bucket_list = list()
 
     for bucket in buckets:
@@ -256,7 +256,7 @@ def bucketlists_id(user, id):
     limit, page = get_pagination_params(request)
     query = request.args.get('q')
     items = BucketItem.query.filter(BucketItem.bucket_id == bucket.id)
-    
+
     if query:
         query = query.replace(' ', '%')
         print(query)
