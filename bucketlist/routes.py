@@ -75,7 +75,7 @@ def get_pagination_params(request):
     except:
          page = 0
     
-    limit = 0 if limit < 0 else limit
+    limit = 12 if limit < 0 else limit
     page = 0 if page < 0 else page
 
     return limit, page
