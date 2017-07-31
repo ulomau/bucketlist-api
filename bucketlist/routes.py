@@ -3,6 +3,7 @@
 import random, string, datetime
 import jwt
 from flask import request, jsonify, make_response
+from sqlalchemy import func, or_
 from functools import wraps
 from .app import *
 
@@ -209,8 +210,9 @@ def bucketlists(user):
     buckets = Bucket.query.filter(Bucket.user_id == user.id)
 
     if query:
-        buckets = buckets.filter(Bucket.name.like('%' + query + '%'))
-
+        query = query.replace(' ', '%')
+        buckets = buckets.filter(func.lower(Bucket.name).like('%' + func.lower(query) + '%'))
+    
     buckets = buckets.limit(limit).offset(offset)
     bucket_list = list()
 
@@ -252,7 +254,15 @@ def bucketlists_id(user, id):
     bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description)
     bucket_result['items'] = list()
     limit, page = get_pagination_params(request)
-    items = BucketItem.query.filter(BucketItem.bucket_id == bucket.id).limit(limit).offset(limit * page)
+    query = request.args.get('q')
+    items = BucketItem.query.filter(BucketItem.bucket_id == bucket.id)
+    
+    if query:
+        query = query.replace(' ', '%')
+        print(query)
+        items = items.filter(func.lower(BucketItem.title).like('%' + func.lower(query) + '%'))
+
+    items = items.order_by(BucketItem.created_at).limit(limit).offset(limit * page)
     
     for item in items:
         bucket_result['items'].append(item.dict())
