@@ -23,4 +23,4 @@ __Note__:
 Make sure to install all required dependencies and configure the app environment.
 
 ## Documentation
-Documentantation can be found at `/apidocs` when the app is running.
+Documentation can be found at `/apidocs` when the app is running.

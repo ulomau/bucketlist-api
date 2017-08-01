@@ -2,7 +2,7 @@
 
 import random, string, datetime
 import jwt
-from flask import request, jsonify, make_response
+from flask import request, jsonify, make_response, render_template
 from sqlalchemy import func, or_
 from functools import wraps
 from .app import *
@@ -87,6 +87,10 @@ def get_pagination_params(request):
     page = 0 if page < 0 else page
 
     return limit, page
+
+@app.route('/')
+def index():
+    return render_template("index.html")
 
 @app.route("/auth/register", methods=['POST'])
 def register():
