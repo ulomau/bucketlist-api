@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/john555/bucketlist-api.svg?branch=master)](https://travis-ci.org/john555/bucketlist-api)
-
+[![Coverage Status](https://coveralls.io/repos/github/john555/bucketlist-api/badge.svg?branch=master)](https://coveralls.io/github/john555/bucketlist-api?branch=master)
 # Bucketlist API (Challenge 3)
 
 This project is an API for a bucket list app, that enables you to keep track of your goals or dreams.
