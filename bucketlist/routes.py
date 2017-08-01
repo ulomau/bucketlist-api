@@ -7,6 +7,7 @@ from sqlalchemy import func, or_
 from functools import wraps
 from .app import *
 from flasgger import Swagger
+from dateutil.parser import parse
 
 Swagger(app)
 
@@ -125,7 +126,7 @@ def register():
                     type: string
     responses:
         201:
-            description: New user was created
+            description: Operation was successful
             schema:
               type: object
               properties:
@@ -228,7 +229,7 @@ def login():
                     type: string
     responses:
         201:
-            description: Login was successful
+            description: Operation was successful
             schema:
               type: object
               properties:
@@ -326,12 +327,12 @@ def logout(user):
 
     responses:
         200:
-            description: User logout was successful
+            description: Operation was successful
             schema:
                 type: object
         
         400:
-            description: Missing token error
+            description: Parameter error
             schema:
                 type: object
                 properties:
@@ -382,12 +383,12 @@ def reset_password(user):
                     type: string
     responses:
         200:
-            description: Password reset was successful
+            description: Operation was successful
             schema:
                 type: object
         
         400:
-            description: Missing token error
+            description: Parameter error
             schema:
                 type: object
                 properties:
@@ -420,11 +421,12 @@ def reset_password(user):
     return jsonify()
 
 # private access
-@app.route("/bucketlists", methods = ['GET', 'POST'])
+
+@app.route("/bucketlists", methods = ['GET'])
 @authenticate
-def bucketlists(user):
+def get_bucketlists(user):
     """
-    Adds or returns buckets
+    Returns a list of buckets
     ---
     tags:
         - Buckets
@@ -438,18 +440,38 @@ def bucketlists(user):
           description: The user's token
           required: true
           type: string
-    post:
-        parameters:
-            - name: name
-            - name: description
-        responses:
-            201:
-                description: A new bucket was added
-                schema:
-                    type: object
-    responses:    
+        - name: limit
+          in: query
+          required: false
+          description: The number of results that should be returned
+          type: integer
+        - name: page
+          in: query
+          required: false
+          description: The current page. Pages start from zero.
+          type: integer
+        - name: q
+          in: query
+          required: false
+          description: The keywords to search.
+          type: string
+    security:
+        - x-token
+    responses:
+        200:
+            description: Operation was successful
+            schema:
+                type: object
+                properties:
+                    id:
+                        type: integer
+                    name:
+                        type: string
+                    description:
+                        type: string
+                    
         400:
-            description: Missing token error
+            description: Parameter error
             schema:
                 type: object
                 properties:
@@ -463,26 +485,6 @@ def bucketlists(user):
                     message:
                         type: string
     """
-    if request.method == 'POST':
-        body = get_request_body(request)
-        name = body.get('name')
-        description = body.get('description')
-
-        if not name:
-            return jsonify(message='Missing required parameter', parameter='name'), 400
-        
-        if not description:
-            return jsonify(message='Missing required parameter', parameter='description'), 400
-        
-        bucket = Bucket(name, description, owner = user)
-        db.session.add(bucket)
-        db.session.commit()
-
-        result = dict(id = bucket.id, name = bucket.name, description=bucket.description)
-
-        return jsonify(result), 201
-
-    # request.method == 'GET'
     limit, page = get_pagination_params(request)
     query = request.args.get('q')
 
@@ -503,16 +505,14 @@ def bucketlists(user):
 
     return jsonify(bucket_list)
 
-@app.route("/bucketlists/<int:id>", methods = ['GET', 'PUT', 'DELETE'])
+@app.route("/bucketlists", methods = ['POST'])
 @authenticate
-def bucketlists_id(user, id):
+def create_bucketlist(user):
     """
-    Returns, edits or deletes buckets
+    Creates a new bucket
     ---
     tags:
         - Buckets
-    parameters:
-        - name: q
     consumes:
         - "application/json"
     produces:
@@ -523,9 +523,132 @@ def bucketlists_id(user, id):
           description: The user's token
           required: true
           type: string
-    responses:    
+        - name: payload
+          in: body
+          required: true
+          description: The name and title of the new Bucket
+          type: object
+          schema:
+            properties:
+                name:
+                    type: string
+                description:
+                    type: string
+    security:
+        - x-token
+    responses:
+        201:
+            description: Operation was successful
+            schema:
+                type: object
+                properties:
+                    id:
+                        type: integer
+                    name:
+                        type: string
+                    description:
+                        type: string
+                    created_at:
+                        type: string
         400:
-            description: Missing token error
+            description: Parameter error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+    """
+    body = get_request_body(request)
+    name = body.get('name')
+    description = body.get('description')
+
+    if not name:
+        return jsonify(message='Missing required parameter', parameter='name'), 400
+    
+    if not description:
+        return jsonify(message='Missing required parameter', parameter='description'), 400
+    
+    bucket = Bucket(name, description, owner = user)
+    db.session.add(bucket)
+    db.session.commit()
+
+    return jsonify(bucket.dict()), 201
+
+@app.route("/bucketlists/<int:id>", methods = ['GET'])
+@authenticate
+def get_bucketlist(user, id):
+    """
+    Returns a bucket along with a list of its items
+    ---
+    tags:
+        - Buckets
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          description: The user's token
+          required: true
+          type: string
+        - name: id
+          in: path
+          type: integer
+          required: true
+          description: The id of the bucket
+        - name: limit
+          in: query
+          required: false
+          description: The number of results that should be returned
+          type: integer
+        - name: page
+          in: query
+          required: false
+          description: The current page. Pages start from zero.
+          type: integer
+        - name: q
+          in: query
+          description: The keywords to search based on item title
+          required: false
+          type: string
+    responses:
+        200:
+            description: Operation was successful
+            schema:
+                type: object
+                properties:
+                    id:
+                        type: integer
+                    name:
+                        type: string
+                    description:
+                        type: string
+                    items:
+                        schema:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                title:
+                                    type: string
+                                description:
+                                    type: string
+                                due_date:
+                                    type: string
+                                is_complete:
+                                    type: boolean
+                                created_at:
+                                    type: string
+        400:
+            description: Parameter error
             schema:
                 type: object
                 properties:
@@ -543,26 +666,6 @@ def bucketlists_id(user, id):
 
     if bucket == None:
         return jsonify(message = 'Bucket does not exist'), 404
-
-    if request.method == 'PUT':
-        body = get_request_body(request)
-        name = body.get('name')
-        description = body.get('description')
-
-        if not name:
-            return jsonify(message='Missing required parameter', parameter="name"), 400
-
-        if not description:
-            return jsonify(message='Missing required parameter', parameter="description"), 400
-
-        bucket.name = name
-        bucket.description = description
-        db.session.commit()
-    
-    if request.method == 'DELETE':
-        db.session.delete(bucket)
-        db.session.commit()
-        return jsonify(id=bucket.id)
 
     bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description)
     bucket_result['items'] = list()
@@ -582,6 +685,146 @@ def bucketlists_id(user, id):
 
     return jsonify(bucket_result)
 
+@app.route("/bucketlists/<int:id>", methods = ['PUT'])
+@authenticate
+def edit_bucketlist(user, id):
+    """
+    Edits a bucket
+    ---
+    tags:
+        - Buckets
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          description: The user's token
+          required: true
+          type: string
+        - name: id
+          in: path
+          type: integer
+          required: true
+          description: The id of the bucket
+        - name: payload
+          in: body
+          required: true
+          description: The name and title of the new Bucket
+          type: object
+          schema:
+            properties:
+                name:
+                    type: string
+                    required: false
+                description:
+                    type: string
+                    required: false
+    responses:
+        200:
+            description: Operation was successful
+            schema:
+                type: object
+                properties:
+                    id:
+                        type: integer
+                    name:
+                        type: string
+                    description:
+                        type: string 
+                    created_at:
+                        type: string
+        400:
+            description: Parameter error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+    """
+    bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
+
+    if bucket == None:
+        return jsonify(message = 'Bucket does not exist'), 404
+    
+    body = get_request_body(request)
+    name = body.get('name')
+    description = body.get('description')
+
+    if not body:
+        return jsonify(message='At least one parameter is required', parameter=list("name", 'description')), 400
+
+    if name:
+        bucket.name = name
+    if description:
+        bucket.description = description
+
+    db.session.commit()
+    return jsonify(bucket.dict())
+
+@app.route("/bucketlists/<int:id>", methods = ['DELETE'])
+@authenticate
+def delete_bucketlist(user, id):
+    """
+    Deletes a bucket
+    ---
+    tags:
+        - Buckets
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          description: The user's token
+          required: true
+          type: string
+        - name: id
+          in: path
+          type: integer
+          required: true
+          description: The id of the bucket to delete
+    responses:
+        200:
+            description: Operation was successful
+            type: object
+            schema:
+                properties:
+                    id:
+                        type: integer
+        400:
+            description: Parameter error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+    """
+    bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
+
+    if bucket == None:
+        return jsonify(message = 'Bucket does not exist'), 404
+
+    db.session.delete(bucket)
+    db.session.commit()
+    return jsonify(id=bucket.id) 
+
 @app.route("/bucketlists/<int:id>/items", methods=['POST'])
 @authenticate
 def add_bucket_item(user, id):
@@ -600,9 +843,45 @@ def add_bucket_item(user, id):
           description: The user's token
           required: true
           type: string
+        - name: id
+          in: path
+          type: integer
+          required: true
+        - name: payload
+          in: body
+          type: object
+          description: Bucket item properties
+          required: true
+          schema:
+            type: object
+            properties:
+                title: 
+                    type: string
+                description:
+                    type: string
+                due_date:
+                    type: string
     responses:    
+        201:
+            description: Operation was successful
+            schema:
+                type: object
+                properties:
+                    id:
+                        type: integer
+                    title:
+                        type: string
+                    description:
+                        type: string
+                    due_date:
+                        type: string
+                    is_complete:
+                        type: boolean
+                    created_at:
+                        type: string
+                       
         400:
-            description: Missing token error
+            description: Parameter error
             schema:
                 type: object
                 properties:
@@ -635,24 +914,21 @@ def add_bucket_item(user, id):
     if due_date == None:
         return jsonify(message='Missing required parameter', parameter="due_date"), 400
 
+    try:
+        parse(due_date)
+    except:
+        return jsonify(message='Invalid date string', parameter="due_date"), 400
+
     item = BucketItem(title, description, due_date, bucket = bucket)
     db.session.add(item)
     db.session.commit()
+    return jsonify(item.dict()), 201
 
-    result = dict()
-    result['id'] = item.id 
-    result['title'] = item.title 
-    result['description'] = item.description
-    result['is_complete'] = item.is_complete
-    result['due_date'] = item.due_date
-    
-    return jsonify(result), 201
-
-@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT', 'DELETE'])
+@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT'])
 @authenticate
-def bucket_items(user, bucket_id, item_id):
+def edit_bucket_item(user, bucket_id, item_id):
     """
-    Edits or deletes items from a bucket
+    Edits an item in a specified bucket
     ---
     tags:
         - Bucket items
@@ -676,9 +952,42 @@ def bucket_items(user, bucket_id, item_id):
           description: Bucket item id
           type: integer
           required: true
-    responses:    
+        - name: payload
+          in: body
+          type: object
+          description: Bucket item properties
+          required: true
+          schema:
+            type: object
+            properties:
+                title: 
+                    type: string
+                description:
+                    type: string
+                due_date:
+                    type: string
+                is_complete:
+                    type: boolean
+    responses: 
+        200:
+            description: Operation was successful
+            schema:
+                type: object
+                properties:
+                    id:
+                        type: integer
+                    title:
+                        type: string
+                    description:
+                        type: string
+                    due_date:
+                        type: string
+                    is_complete:
+                        type: boolean
+                    created_at:
+                        type: string   
         400:
-            description: Missing token error
+            description: Parameter error
             schema:
                 type: object
                 properties:
@@ -703,42 +1012,99 @@ def bucket_items(user, bucket_id, item_id):
     if item == None:
         return jsonify(error='BucketItem does not extist'), 404
 
-    if request.method == 'DELETE':
-        db.session.delete(item)
-        db.session.commit()
-        return jsonify(id=item.id)
-
-    # request.method == 'PUT':
     body = get_request_body(request)
     title = body.get('title')
     description = body.get('description')
     is_complete = body.get('is_complete')
     due_date = body.get('due_date')
-
+    #print(is_complete)
     try:
         is_complete = int(is_complete)
     except:
-        is_complete = False
+        is_complete = None
 
-    if not title == None:
+    if not body:
+        return jsonify(message='At least one parameter is required', parameter=list("name", 'description')), 400
+
+    if title:
         item.title = title
 
-    if not description == None:
+    if description:
         item.description = description
 
-    if not due_date == None:
+    if due_date:
         item.due_date = due_date
     
-    if not is_complete == None:
+    if is_complete != None:
+        print(bool(is_complete))
         item.is_complete = bool(is_complete)
-
-    db.session.commit()
-
-    result = dict()
-    result['id'] = item.id 
-    result['title'] = item.title 
-    result['description'] = item.description
-    result['is_complete'] = item.is_complete
-    result['due_date'] = item.due_date
     
-    return jsonify(result)
+    db.session.commit()
+    
+    return jsonify(item.dict())
+
+@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['DELETE'])
+@authenticate
+def delete_bucket_item(user, bucket_id, item_id):
+    """
+    Deletes an item from a specified bucket
+    ---
+    tags:
+        - Bucket items
+    consumes:
+        - "application/json"
+    produces:
+        - "application/json"
+    parameters:
+        - name: x-token
+          in: header
+          description: The user's token
+          required: true
+          type: string
+        - name: bucket_id
+          in: path
+          description: Bucket id
+          required: true
+          type: integer
+        - name: item_id
+          in: path
+          description: Bucket item id
+          type: integer
+          required: true
+    responses:
+        200:
+            description: Operation was successful
+            type: object
+            schema:
+                properties:
+                    id:
+                        type: integer
+        400:
+            description: Parameter error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+        401:
+            description: Invalid token error
+            schema:
+                type: object
+                properties:
+                    message:
+                        type: string
+    """
+    
+    bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
+    
+    if bucket == None:
+        return jsonify(error='Bucket does not extist'), 404
+
+    item = BucketItem.query.filter_by(bucket_id = bucket.id, id = item_id).first()
+
+    if item == None:
+        return jsonify(error='BucketItem does not extist'), 404
+    
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify(id=item.id)
