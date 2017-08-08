@@ -114,7 +114,7 @@ def get_pagination_params(request):
 def index():
     return render_template("index.html")
 
-@app.route("/auth/register", methods=['POST'])
+@app.route("/auth/register", methods=['POST', 'OPTIONS'])
 @allow_cross_origin
 def register():
     """
@@ -186,6 +186,10 @@ def register():
                     type: string
                     description: The name of the duplicate parameter
     """
+
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     body = get_request_body(request)
     
     first_name = body.get("first_name")
@@ -227,7 +231,7 @@ def register():
     
     return jsonify(created_user.dict()), 201
 
-@app.route("/auth/login", methods=['POST'])
+@app.route("/auth/login", methods=['POST', 'OPTIONS'])
 @allow_cross_origin
 def login():
     """
@@ -296,6 +300,10 @@ def login():
                     type: string
                     description: The name of the duplicate parameter
     """
+    
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     auth = request.authorization
 
     if not auth:
@@ -334,7 +342,7 @@ def login():
 
     return jsonify(token=token, user = user.dict())
 
-@app.route("/auth/logout", methods=['POST'])
+@app.route("/auth/logout", methods=['POST', 'OPTIONS'])
 @authenticate
 @allow_cross_origin
 def logout(user):
@@ -375,13 +383,16 @@ def logout(user):
                     message:
                         type: string
     """
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     expiry = datetime.datetime.utcnow() - datetime.timedelta(minutes=20)
     #user.token = ''
     user.token_expiry = expiry
     db.session.commit()
     return jsonify()
 
-@app.route("/auth/reset-password", methods=['POST'])
+@app.route("/auth/reset-password", methods=['POST', 'OPTIONS'])
 @authenticate
 @allow_cross_origin
 def reset_password(user):
@@ -432,6 +443,9 @@ def reset_password(user):
                     message:
                         type: string
     """
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     body = get_request_body(request)
     old_password = body.get('old_password')
     new_password = body.get('new_password')
@@ -536,7 +550,7 @@ def get_bucketlists(user):
 
     return jsonify(bucket_list)
 
-@app.route("/bucketlists", methods = ['POST'])
+@app.route("/bucketlists", methods = ['POST', 'OPTIONS'])
 @authenticate
 @allow_cross_origin
 def create_bucketlist(user):
@@ -597,6 +611,9 @@ def create_bucketlist(user):
                     message:
                         type: string
     """
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     body = get_request_body(request)
     name = body.get('name')
     description = body.get('description')
@@ -718,7 +735,7 @@ def get_bucketlist(user, id):
 
     return jsonify(bucket_result)
 
-@app.route("/bucketlists/<int:id>", methods = ['PUT'])
+@app.route("/bucketlists/<int:id>", methods = ['PUT', 'OPTIONS'])
 @authenticate
 @allow_cross_origin
 def edit_bucketlist(user, id):
@@ -784,6 +801,10 @@ def edit_bucketlist(user, id):
                     message:
                         type: string
     """
+    
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
@@ -804,7 +825,7 @@ def edit_bucketlist(user, id):
     db.session.commit()
     return jsonify(bucket.dict())
 
-@app.route("/bucketlists/<int:id>", methods = ['DELETE'])
+@app.route("/bucketlists/<int:id>", methods = ['DELETE', 'OPTIONS'])
 @authenticate
 @allow_cross_origin
 def delete_bucketlist(user, id):
@@ -851,6 +872,10 @@ def delete_bucketlist(user, id):
                     message:
                         type: string
     """
+    
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
@@ -860,7 +885,7 @@ def delete_bucketlist(user, id):
     db.session.commit()
     return jsonify(id=bucket.id) 
 
-@app.route("/bucketlists/<int:id>/items", methods=['POST'])
+@app.route("/bucketlists/<int:id>/items", methods=['POST', 'OPTIONS'])
 @authenticate
 @allow_cross_origin
 def add_bucket_item(user, id):
@@ -931,6 +956,10 @@ def add_bucket_item(user, id):
                     message:
                         type: string
     """
+    
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
     
     if bucket == None:
@@ -960,7 +989,7 @@ def add_bucket_item(user, id):
     db.session.commit()
     return jsonify(item.dict()), 201
 
-@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT'])
+@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT', 'OPTIONS'])
 @authenticate
 @allow_cross_origin
 def edit_bucket_item(user, bucket_id, item_id):
@@ -1039,6 +1068,9 @@ def edit_bucket_item(user, bucket_id, item_id):
                         type: string
     """
     
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
     
     if bucket == None:
@@ -1080,7 +1112,7 @@ def edit_bucket_item(user, bucket_id, item_id):
     
     return jsonify(item.dict())
 
-@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['DELETE'])
+@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['DELETE', 'OPTIONS'])
 @authenticate
 @allow_cross_origin
 def delete_bucket_item(user, bucket_id, item_id):
@@ -1133,6 +1165,9 @@ def delete_bucket_item(user, bucket_id, item_id):
                         type: string
     """
     
+    if request.method == 'OPTIONS':
+        return jsonify()
+
     bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
     
     if bucket == None:
