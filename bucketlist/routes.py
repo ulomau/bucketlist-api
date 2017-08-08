@@ -17,6 +17,28 @@ app.config['SECRET_KEY'] = 'RANDOM_STRING'
 app.config['TOKEN_NAME'] = 'x-token'
 # public access
 
+def add_response_headers(headers={}):
+    """This decorator adds the headers passed in to the response"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            resp = make_response(f(*args, **kwargs))
+            h = resp.headers
+            for header, value in headers.items():
+                h[header] = value
+            return resp
+        return decorated_function
+    return decorator
+
+
+def allow_cross_origin(f):
+    """This decorator passes X-Robots-Tag: noindex"""
+    @wraps(f)
+    @add_response_headers({'Access-Control-Allow-Origin': '*'})
+    def decorated_function(*args, **kwargs):
+        return f(*args, **kwargs)
+    return decorated_function
+
 def authenticate(f):
     @wraps(f)
     def inner(*args, **kwargs):
@@ -93,6 +115,7 @@ def index():
     return render_template("index.html")
 
 @app.route("/auth/register", methods=['POST'])
+@allow_cross_origin
 def register():
     """
 	Registers new application user
@@ -164,7 +187,7 @@ def register():
                     description: The name of the duplicate parameter
     """
     body = get_request_body(request)
-    print(body)
+    
     first_name = body.get("first_name")
     last_name = body.get("last_name")
     username = body.get("username")
@@ -205,6 +228,7 @@ def register():
     return jsonify(created_user.dict()), 201
 
 @app.route("/auth/login", methods=['POST'])
+@allow_cross_origin
 def login():
     """
     Logins in application user
@@ -312,6 +336,7 @@ def login():
 
 @app.route("/auth/logout", methods=['POST'])
 @authenticate
+@allow_cross_origin
 def logout(user):
     """
     Logout application user
@@ -358,6 +383,7 @@ def logout(user):
 
 @app.route("/auth/reset-password", methods=['POST'])
 @authenticate
+@allow_cross_origin
 def reset_password(user):
     """
     Resets application user's password
@@ -428,6 +454,7 @@ def reset_password(user):
 
 @app.route("/bucketlists", methods = ['GET'])
 @authenticate
+@allow_cross_origin
 def get_bucketlists(user):
     """
     Returns a list of buckets
@@ -511,6 +538,7 @@ def get_bucketlists(user):
 
 @app.route("/bucketlists", methods = ['POST'])
 @authenticate
+@allow_cross_origin
 def create_bucketlist(user):
     """
     Creates a new bucket
@@ -587,6 +615,7 @@ def create_bucketlist(user):
 
 @app.route("/bucketlists/<int:id>", methods = ['GET'])
 @authenticate
+@allow_cross_origin
 def get_bucketlist(user, id):
     """
     Returns a bucket along with a list of its items
@@ -691,6 +720,7 @@ def get_bucketlist(user, id):
 
 @app.route("/bucketlists/<int:id>", methods = ['PUT'])
 @authenticate
+@allow_cross_origin
 def edit_bucketlist(user, id):
     """
     Edits a bucket
@@ -776,6 +806,7 @@ def edit_bucketlist(user, id):
 
 @app.route("/bucketlists/<int:id>", methods = ['DELETE'])
 @authenticate
+@allow_cross_origin
 def delete_bucketlist(user, id):
     """
     Deletes a bucket
@@ -831,6 +862,7 @@ def delete_bucketlist(user, id):
 
 @app.route("/bucketlists/<int:id>/items", methods=['POST'])
 @authenticate
+@allow_cross_origin
 def add_bucket_item(user, id):
     """
     Creates a new bucket item
@@ -930,6 +962,7 @@ def add_bucket_item(user, id):
 
 @app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT'])
 @authenticate
+@allow_cross_origin
 def edit_bucket_item(user, bucket_id, item_id):
     """
     Edits an item in a specified bucket
@@ -1021,7 +1054,7 @@ def edit_bucket_item(user, bucket_id, item_id):
     description = body.get('description')
     is_complete = body.get('is_complete')
     due_date = body.get('due_date')
-    #print(is_complete)
+    
     try:
         is_complete = int(is_complete)
     except:
@@ -1049,6 +1082,7 @@ def edit_bucket_item(user, bucket_id, item_id):
 
 @app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['DELETE'])
 @authenticate
+@allow_cross_origin
 def delete_bucket_item(user, bucket_id, item_id):
     """
     Deletes an item from a specified bucket
