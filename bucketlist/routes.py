@@ -14,7 +14,7 @@ Swagger(app)
 RANDOM_STRING = ''.join(random.choice(string.ascii_letters + string.digits) for x in range(32))
 # app.config['SECRET_KEY'] = RANDOM_STRING
 app.config['SECRET_KEY'] = 'RANDOM_STRING'
-app.config['TOKEN_NAME'] = 'x-token'
+app.config['TOKEN_NAME'] = 'X-Token'
 # public access
 
 def add_response_headers(headers={}):
@@ -32,9 +32,11 @@ def add_response_headers(headers={}):
 
 
 def allow_cross_origin(f):
-    """This decorator passes X-Robots-Tag: noindex"""
     @wraps(f)
-    @add_response_headers({'Access-Control-Allow-Origin': '*'})
+    @add_response_headers({
+        'Access-Control-Allow-Headers': app.config['TOKEN_NAME'] + ', Content-Type',
+        'Access-Control-Allow-Origin': '*'
+    })
     def decorated_function(*args, **kwargs):
         return f(*args, **kwargs)
     return decorated_function
@@ -79,8 +81,8 @@ def authenticate(f):
 def get_request_body(request):
     """Returns the request body."""
     content_type = request.content_type
-   
-    if content_type == 'application/json':
+    
+    if 'application/json' in content_type:
         return request.json
     return request.form
 
@@ -356,7 +358,7 @@ def logout(user):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           required: true
           description: User's token
@@ -406,7 +408,7 @@ def reset_password(user):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           required: true
           description: User's token
@@ -480,7 +482,7 @@ def get_bucketlists(user):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           description: The user's token
           required: true
@@ -501,7 +503,7 @@ def get_bucketlists(user):
           description: The keywords to search.
           type: string
     security:
-        - x-token
+        - X-Token
     responses:
         200:
             description: Operation was successful
@@ -564,7 +566,7 @@ def create_bucketlist(user):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           description: The user's token
           required: true
@@ -581,7 +583,7 @@ def create_bucketlist(user):
                 description:
                     type: string
     security:
-        - x-token
+        - X-Token
     responses:
         201:
             description: Operation was successful
@@ -644,7 +646,7 @@ def get_bucketlist(user, id):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           description: The user's token
           required: true
@@ -749,7 +751,7 @@ def edit_bucketlist(user, id):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           description: The user's token
           required: true
@@ -839,7 +841,7 @@ def delete_bucketlist(user, id):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           description: The user's token
           required: true
@@ -899,7 +901,7 @@ def add_bucket_item(user, id):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           description: The user's token
           required: true
@@ -1003,7 +1005,7 @@ def edit_bucket_item(user, bucket_id, item_id):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           description: The user's token
           required: true
@@ -1126,7 +1128,7 @@ def delete_bucket_item(user, bucket_id, item_id):
     produces:
         - "application/json"
     parameters:
-        - name: x-token
+        - name: X-Token
           in: header
           description: The user's token
           required: true
