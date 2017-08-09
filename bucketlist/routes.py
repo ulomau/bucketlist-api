@@ -343,8 +343,8 @@ def login():
     return jsonify(token=token, user = user.dict())
 
 @app.route("/auth/logout", methods=['POST', 'OPTIONS'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def logout(user):
     """
     Logout application user
@@ -393,8 +393,8 @@ def logout(user):
     return jsonify()
 
 @app.route("/auth/reset-password", methods=['POST', 'OPTIONS'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def reset_password(user):
     """
     Resets application user's password
@@ -467,8 +467,8 @@ def reset_password(user):
 # private access
 
 @app.route("/bucketlists", methods = ['GET'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def get_bucketlists(user):
     """
     Returns a list of buckets
@@ -551,8 +551,8 @@ def get_bucketlists(user):
     return jsonify(bucket_list)
 
 @app.route("/bucketlists", methods = ['POST', 'OPTIONS'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def create_bucketlist(user):
     """
     Creates a new bucket
@@ -631,8 +631,8 @@ def create_bucketlist(user):
     return jsonify(bucket.dict()), 201
 
 @app.route("/bucketlists/<int:id>", methods = ['GET'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def get_bucketlist(user, id):
     """
     Returns a bucket along with a list of its items
@@ -736,8 +736,8 @@ def get_bucketlist(user, id):
     return jsonify(bucket_result)
 
 @app.route("/bucketlists/<int:id>", methods = ['PUT', 'OPTIONS'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def edit_bucketlist(user, id):
     """
     Edits a bucket
@@ -826,8 +826,8 @@ def edit_bucketlist(user, id):
     return jsonify(bucket.dict())
 
 @app.route("/bucketlists/<int:id>", methods = ['DELETE', 'OPTIONS'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def delete_bucketlist(user, id):
     """
     Deletes a bucket
@@ -886,8 +886,8 @@ def delete_bucketlist(user, id):
     return jsonify(id=bucket.id) 
 
 @app.route("/bucketlists/<int:id>/items", methods=['POST', 'OPTIONS'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def add_bucket_item(user, id):
     """
     Creates a new bucket item
@@ -990,8 +990,8 @@ def add_bucket_item(user, id):
     return jsonify(item.dict()), 201
 
 @app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT', 'OPTIONS'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def edit_bucket_item(user, bucket_id, item_id):
     """
     Edits an item in a specified bucket
@@ -1113,8 +1113,8 @@ def edit_bucket_item(user, bucket_id, item_id):
     return jsonify(item.dict())
 
 @app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['DELETE', 'OPTIONS'])
-@authenticate
 @allow_cross_origin
+@authenticate
 def delete_bucket_item(user, bucket_id, item_id):
     """
     Deletes an item from a specified bucket
