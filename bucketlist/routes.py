@@ -639,7 +639,7 @@ def create_bucketlist(user):
 
     return jsonify(bucket.dict()), 201
 
-@app.route("/bucketlists/<int:id>", methods = ['GET'])
+@app.route("/bucketlists/<int:id>", methods = ['GET', 'OPTIONS'])
 @allow_cross_origin
 @authenticate
 def get_bucketlist(user, id):
@@ -721,6 +721,10 @@ def get_bucketlist(user, id):
                     message:
                         type: string
     """
+    
+    if request.method == 'OPTIONS' or not user:
+        return jsonify()
+
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
