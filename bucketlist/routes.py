@@ -44,6 +44,9 @@ def allow_cross_origin(f):
 def authenticate(f):
     @wraps(f)
     def inner(*args, **kwargs):
+
+        if request.method == 'OPTIONS':
+            return f(None, *args, **kwargs)
         token = None
         if app.config['TOKEN_NAME'] in request.headers:
             token = request.headers[app.config['TOKEN_NAME']]
@@ -468,7 +471,7 @@ def reset_password(user):
 
 # private access
 
-@app.route("/bucketlists", methods = ['GET'])
+@app.route("/bucketlists", methods = ['GET', 'OPTIONS'])
 @allow_cross_origin
 @authenticate
 def get_bucketlists(user):
@@ -532,6 +535,10 @@ def get_bucketlists(user):
                     message:
                         type: string
     """
+
+    if request.method == 'OPTIONS' or not user:
+        return jsonify()
+
     limit, page = get_pagination_params(request)
     query = request.args.get('q')
 
