@@ -3,7 +3,7 @@
 import random, string, datetime
 import jwt
 from flask import request, jsonify, make_response, render_template
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, desc
 from functools import wraps
 from .app import *
 from flasgger import Swagger
@@ -550,7 +550,7 @@ def get_bucketlists(user):
         query = query.replace(' ', '%')
         buckets = buckets.filter(func.lower(Bucket.name).like('%' + func.lower(query) + '%'))
     
-    buckets = buckets.order_by(Bucket.created_at).limit(limit).offset(offset)
+    buckets = buckets.order_by(desc(Bucket.created_at)).limit(limit).offset(offset)
     bucket_list = list()
 
     for bucket in buckets:
@@ -741,7 +741,7 @@ def get_bucketlist(user, id):
         print(query)
         items = items.filter(func.lower(BucketItem.title).like('%' + func.lower(query) + '%'))
 
-    items = items.order_by(BucketItem.created_at).limit(limit).offset(limit * page)
+    items = items.order_by(desc(BucketItem.created_at)).limit(limit).offset(limit * page)
     
     for item in items:
         bucket_result['items'].append(item.dict())
