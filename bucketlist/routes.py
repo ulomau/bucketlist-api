@@ -338,7 +338,7 @@ def login():
         return jsonify(message = "Invalid login credentials"), 401
 
     # password matched login user
-    expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=24*60*7)
+    expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=8*60)
     token = jwt.encode({'user_id':user.id, 'expiry':str(expiry)}, app.config['SECRET_KEY'])
     token = token.decode('UTF-8')
 
