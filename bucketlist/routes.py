@@ -463,7 +463,7 @@ def reset_password(user):
         return jsonify(message = 'You must provide new password', parameter='new_password'), 400
 
     if not user.verify_password(old_password):
-        return jsonify(message = 'Invalid old password'), 400
+        return jsonify(message = 'Invalid old password'), 401
 
     user.set_password(new_password)
     db.session.commit()
