@@ -3,7 +3,7 @@
 import random, string, datetime
 import jwt
 from flask import request, jsonify, make_response, render_template
-from sqlalchemy import func, or_, desc
+from sqlalchemy import func, or_, desc, and_
 from functools import wraps
 from .app import *
 from flasgger import Swagger
@@ -830,15 +830,21 @@ def edit_bucketlist(user, id):
     
     if request.method == 'OPTIONS':
         return jsonify()
+    
+    body = get_request_body(request)
+    name = body.get('name')
+    description = body.get('description')
+    bucket = Bucket.query.filter(and_(func.lower(Bucket.name) == func.lower(name)), Bucket.id != id).first()
+    
+    if bucket:
+        return jsonify(message='Duplicate parameter', parameter='name'), 400
 
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
         return jsonify(message = 'Bucket does not exist'), 404
     
-    body = get_request_body(request)
-    name = body.get('name')
-    description = body.get('description')
+    
 
     if not body:
         return jsonify(message='At least one parameter is required', parameter=list("name", 'description')), 400
