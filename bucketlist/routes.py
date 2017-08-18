@@ -8,6 +8,7 @@ from functools import wraps
 from .app import *
 from flasgger import Swagger
 from dateutil.parser import parse
+import re
 
 Swagger(app)
 
@@ -170,7 +171,7 @@ def register():
                 username:
                     type: string
         400:
-            description: Missing property error
+            description: Invalid input
             schema:
               type: object
               properties:
@@ -204,6 +205,12 @@ def register():
     email = body.get("email")
     password = body.get("password")
 
+    if not re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", email):
+        return jsonify(message = 'The email address is invalid', parameter = 'email'), 400
+
+    if len(password) < 8:
+        return jsonify(message = 'The password should be at least 8 characters long', parameter = 'password'), 400
+
     if not first_name:
          return jsonify(message = 'Missing parameter', parameter = 'first_name'), 400
 
@@ -224,11 +231,11 @@ def register():
     if email_exists:
         return jsonify(message = 'Duplicate parameter', parameter = 'email'), 409
 
-    username_exists = User.has_username(username)
+    username_exists = User.has_username(username, verify=True)
 
     if username_exists:
         return jsonify(message = 'Duplicate parameter', parameter = 'username'), 409
-
+    
     user = User(first_name, last_name, username, email, password)
     db.session.add(user)
     db.session.commit()
