@@ -641,6 +641,11 @@ def create_bucketlist(user):
     if not description:
         return jsonify(message='Missing required parameter', parameter='description'), 400
     
+    bucket = Bucket.query.filter(func.lower(Bucket.name) == func.lower(name)).first()
+    
+    if bucket:
+        return jsonify(message='Duplicate parameter', parameter='name'), 400
+
     bucket = Bucket(name, description, owner = user)
     db.session.add(bucket)
     db.session.commit()
