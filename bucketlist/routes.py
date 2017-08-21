@@ -60,7 +60,7 @@ def authenticate(f):
             return jsonify(message="Missing token"), 401
 
         try:
-            data = jwt.decode(token, app.config['SECRET_KEY'])
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
             
         except:
             return jsonify(message="Invalid token"), 401
@@ -231,7 +231,7 @@ def register():
     if email_exists:
         return jsonify(message = 'Duplicate parameter', parameter = 'email'), 409
 
-    username_exists = User.has_username(username, verify=True)
+    username_exists = User.has_username(username)
 
     if username_exists:
         return jsonify(message = 'Duplicate parameter', parameter = 'username'), 409
@@ -346,7 +346,7 @@ def login():
 
     # password matched login user
     expiry = datetime.datetime.utcnow() + datetime.timedelta(minutes=8*60)
-    token = jwt.encode({'user_id':user.id, 'expiry':str(expiry)}, app.config['SECRET_KEY'])
+    token = jwt.encode({'user_id':user.id, 'expiry':str(expiry)}, app.config['SECRET_KEY'], algorithm='HS256')
     token = token.decode('UTF-8')
 
     user.token = token

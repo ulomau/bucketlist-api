@@ -46,10 +46,6 @@ class TestUserModel(unittest.TestCase):
 
         self.item = BucketItem.query.filter_by(bucket_id = self.bucket.id).first()
 
-
-    def tearDown(self):
-        pass
-        
     # User
 
     def test_can_create_user(self):
@@ -58,12 +54,8 @@ class TestUserModel(unittest.TestCase):
     
     def test_can_verify_password(self):
         self.assertTrue(self.user.verify_password('theSecurePassword'))
-        self.assertFalse(self.user.verify_password('theUnSecurePassword'))
     
     def test_can_change_password(self):
-        # make sure old password validates correctly
-        self.assertTrue(self.user.verify_password('theSecurePassword'))
-
         # change pasword
         new_password = 'theNewPassword'
         self.user.set_password(new_password)
@@ -72,6 +64,10 @@ class TestUserModel(unittest.TestCase):
         
         self.assertTrue(user.verify_password(new_password))
         self.assertFalse(user.verify_password('theSecurePassword'))
+
+        # revert password
+        self.user.set_password('theSecurePassword')
+        db.session.commit()
 
     def test_can_check_if_email_exists(self):
         uname_exists1 = User.has_email('jdoe@example.com')
@@ -123,7 +119,7 @@ class TestUserModel(unittest.TestCase):
         bucket.name = name2
         bucket.description = description2
 
-        db.session.commit();
+        db.session.commit()
 
         edited_bucket = Bucket.query.get(bucket.id)
 

@@ -16,7 +16,7 @@ before_script:
   - psql -c 'create database bucketlist;' -U postgres
 
 script:
-  - python -m unittest
+  - nosetests --with-coverage --cover-package=bucketlist
 
 after_success:
   - coveralls
