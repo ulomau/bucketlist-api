@@ -2,15 +2,19 @@
 
 # Bucketlist API (Challenge 3)
 
-This project is an API for a bucket list app, that enables you to keep track of your goals or dreams.
+This project is an API for a bucketlist app, that enables you to keep track of your goals or dreams.
 
 ## How to run the app
 
-- Install Python version >= 3.5
-- Clone the repository.
-- Cd into the root the project root folder.
+To run this project, you will need Python 3 installed on your computer.
+
+- Install `virtualenv` and `virtualenvwrapper`.
+- Clone the repository using `git clone https://github.com/john555/bucketlist-api.git`.
+- Cd into the root the project root folder using `cd <folder_name>`.
+- Create a virtual environment using using `mkvirtual <virtual_environment_name>`.
+- Activate the virtual environment using `workon <virtual_environment_name>` if it isn't activated.
 - Install required packages using `pip install -r requirements.txt`.
-- Configure the `DATABASE_URI` environment variable. This is the database connection string.
+- Create a database using postgresql and set the value of the `DATABASE_URL` environment variable. This is the database connection string.
 - Run the app using the `python run.py` command.
 
 ## How to run migration script
@@ -22,7 +26,8 @@ For more info on what commands are available, run `python dbmigration.py db --he
 
 The tests are written using the unittest module. To execute tests,
 
-- Run `python -m unittest` while in the project's root folder. 
+- Run `nosetests --with-coverage --cover-package=bucketlist` from the root folder of the project.
+- Alternatively you can run `python -m unittest`. 
 
 __Note__:
 Make sure to install all required dependencies and configure the app environment.
