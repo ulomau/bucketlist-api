@@ -10,13 +10,13 @@ services:
   - postgresql
 
 env:
-  - DATABASE_URI=postgresql://localhost/bucketlist
+  - DATABASE_URL=postgresql://localhost/bucketlist
 
 before_script:
   - psql -c 'create database bucketlist;' -U postgres
 
 script:
-  - python -m unittest
+  - nosetests --with-coverage --cover-package=bucketlist
 
 after_success:
   - coveralls
