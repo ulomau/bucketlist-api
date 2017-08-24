@@ -6,16 +6,9 @@ from flask import request, jsonify, make_response, render_template
 from sqlalchemy import func, or_, desc, and_
 from functools import wraps
 from .app import *
-from flasgger import Swagger
 from dateutil.parser import parse
 import re
 
-Swagger(app)
-
-RANDOM_STRING = ''.join(random.choice(string.ascii_letters + string.digits) for x in range(32))
-# app.config['SECRET_KEY'] = RANDOM_STRING
-app.config['SECRET_KEY'] = 'RANDOM_STRING'
-app.config['TOKEN_NAME'] = 'X-Token'
 # public access
 
 def add_response_headers(headers={}):

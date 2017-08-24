@@ -4,13 +4,19 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
-from .databaseconfig import DATABASE_URL
-import datetime
+from flasgger import Swagger
+import datetime, os
 from passlib.hash import sha256_crypt
 
 app = Flask(__name__)
+
+app.config['SECRET_KEY'] = os.environ.get('APP_SECRET')
+app.config['TOKEN_NAME'] = 'X-Token'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+
+Swagger(app)
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 manager = Manager(app)
