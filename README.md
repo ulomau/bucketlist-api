@@ -15,7 +15,8 @@ To run this project, you will need Python 3 installed on your computer.
 - Activate the virtual environment using `workon <virtual_environment_name>` if it isn't activated.
 - Install required packages using `pip install -r requirements.txt`.
 - Create a database using postgresql and set `DATABASE_URL` as an environment variable. This is the database connection string.
-- Set set `APP_SECRET` as environment variable. This should be a long secret key.
+- Set `APP_SECRET` as environment variable. This should be a long secret key.
+- Set `REQUESTS_ORIGIN` as an environment variable. This is the domain from which the API will be consumed.
 - Run the app using the `python run.py` command.
 
 ## How to run migration script

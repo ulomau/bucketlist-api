@@ -29,7 +29,7 @@ def allow_cross_origin(f):
     @wraps(f)
     @add_response_headers({
         'Access-Control-Allow-Headers': app.config['TOKEN_NAME'] + ', Content-Type',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': app.config['REQUESTS_ORIGIN'},
         'Access-Control-Allow-Methods': 'GET, OPTIONS, POST, PUT, DELETE'
     })
     def decorated_function(*args, **kwargs):
