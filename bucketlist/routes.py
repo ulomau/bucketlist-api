@@ -205,29 +205,29 @@ def register():
         return jsonify(message = 'The password should be at least 8 characters long', parameter = 'password'), 400
 
     if not first_name:
-         return jsonify(message = 'Missing parameter', parameter = 'first_name'), 400
+         return jsonify(message = 'First name is missing', parameter = 'first_name'), 400
 
     if not last_name:
-         return jsonify(message = 'Missing parameter', parameter = 'first_name'), 400
+         return jsonify(message = 'Last name is missing', parameter = 'first_name'), 400
 
     if not username:
-         return jsonify(message = 'Missing parameter', parameter = 'username'), 400
+         return jsonify(message = 'Username is missing', parameter = 'username'), 400
 
     if not email:
-         return jsonify(message = 'Missing parameter', parameter = 'email'), 400
+         return jsonify(message = 'Email address is missing', parameter = 'email'), 400
 
     if not password:
-         return jsonify(message = 'Missing parameter', parameter = 'password'), 400
+         return jsonify(message = 'Password is missing', parameter = 'password'), 400
 
     email_exists = User.has_email(email)
 
     if email_exists:
-        return jsonify(message = 'Duplicate parameter', parameter = 'email'), 409
+        return jsonify(message = 'Email address already exists', parameter = 'email'), 409
 
     username_exists = User.has_username(username)
 
     if username_exists:
-        return jsonify(message = 'Duplicate parameter', parameter = 'username'), 409
+        return jsonify(message = 'Username already exists', parameter = 'username'), 409
     
     user = User(first_name, last_name, username, email, password)
     db.session.add(user)
@@ -235,7 +235,7 @@ def register():
 
     created_user = User.query.filter_by(email = email).first()
     
-    return jsonify(created_user.dict()), 201
+    return jsonify(), 201
 
 @app.route("/auth/login", methods=['POST', 'OPTIONS'])
 @allow_cross_origin
@@ -321,10 +321,10 @@ def login():
         password = auth.password
 
     if not username:
-        return jsonify(message = 'Missing parameter', parameter = 'username'), 400
+        return jsonify(message = 'Username is missing', parameter = 'username'), 400
 
     if not password:
-        return jsonify(message = 'Missing parameter', parameter = 'password'), 400
+        return jsonify(message = 'Password is missing', parameter = 'password'), 400
 
     user = User.query.filter_by(username=username).first()
 
@@ -457,10 +457,10 @@ def reset_password(user):
     new_password = body.get('new_password')
 
     if not old_password:
-        return jsonify(message = 'You must provide old password', parameter='old_password'), 400
+        return jsonify(message = 'Old password is missing', parameter='old_password'), 400
 
     if not new_password:
-        return jsonify(message = 'You must provide new password', parameter='new_password'), 400
+        return jsonify(message = 'New password is missing', parameter='new_password'), 400
 
     if not user.verify_password(old_password):
         return jsonify(message = 'Invalid old password'), 401
@@ -629,15 +629,15 @@ def create_bucketlist(user):
     description = body.get('description')
 
     if not name:
-        return jsonify(message='Missing required parameter', parameter='name'), 400
+        return jsonify(message='Bucket name is missing', parameter='name'), 400
     
     if not description:
-        return jsonify(message='Missing required parameter', parameter='description'), 400
+        return jsonify(message='Bucket description is missing', parameter='description'), 400
     
     bucket = Bucket.query.filter(func.lower(Bucket.name) == func.lower(name)).first()
     
     if bucket:
-        return jsonify(message='Duplicate parameter', parameter='name'), 400
+        return jsonify(message='A bucket with that name already exists', parameter='name'), 400
 
     bucket = Bucket(name, description, owner = user)
     db.session.add(bucket)
@@ -734,7 +734,7 @@ def get_bucketlist(user, id):
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
-        return jsonify(message = 'Bucket does not exist'), 404
+        return jsonify(message = 'The bucket you requested does not exist'), 404
 
     bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description)
     bucket_result['items'] = list()
@@ -744,7 +744,6 @@ def get_bucketlist(user, id):
 
     if query:
         query = query.replace(' ', '%')
-        print(query)
         items = items.filter(func.lower(BucketItem.title).like('%' + func.lower(query) + '%'))
 
     items = items.order_by(desc(BucketItem.created_at)).limit(limit).offset(limit * page)
@@ -830,12 +829,12 @@ def edit_bucketlist(user, id):
     bucket = Bucket.query.filter(and_(func.lower(Bucket.name) == func.lower(name)), Bucket.id != id).first()
     
     if bucket:
-        return jsonify(message='Duplicate parameter', parameter='name'), 400
+        return jsonify(message='A bucket with that name already exists', parameter='name'), 400
 
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
-        return jsonify(message = 'Bucket does not exist'), 404
+        return jsonify(message = 'The bucket you requested does not exist'), 404
     
     
 
@@ -904,7 +903,7 @@ def delete_bucketlist(user, id):
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
 
     if bucket == None:
-        return jsonify(message = 'Bucket does not exist'), 404
+        return jsonify(message = 'The bucket you requested does not exist'), 404
 
     db.session.delete(bucket)
     db.session.commit()
@@ -988,7 +987,7 @@ def add_bucket_item(user, id):
     bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
     
     if bucket == None:
-        return jsonify(error='Bucket does not extist'), 404
+        return jsonify(error='The bucket you requested does not exist'), 404
 
     body = get_request_body(request)
     title = body.get('title')
@@ -996,18 +995,18 @@ def add_bucket_item(user, id):
     due_date = body.get('due_date')
 
     if title == None:
-        return jsonify(message='Missing required parameter', parameter="title"), 400
+        return jsonify(message='Title is missing', parameter="title"), 400
 
     if description == None:
-        return jsonify(message='Missing required parameter', parameter="description"), 400
+        return jsonify(message='Description is missing', parameter="description"), 400
 
     if due_date == None:
-        return jsonify(message='Missing required parameter', parameter="due_date"), 400
+        return jsonify(message='Due date is missing', parameter="due_date"), 400
 
     try:
         parse(due_date)
     except:
-        return jsonify(message='Invalid date string', parameter="due_date"), 400
+        return jsonify(message='Due date is invalid', parameter="due_date"), 400
 
     item = BucketItem(title, description, due_date, bucket = bucket)
     db.session.add(item)
@@ -1118,7 +1117,7 @@ def edit_bucket_item(user, bucket_id, item_id):
         is_complete = None
 
     if not body:
-        return jsonify(message='At least one parameter is required', parameter=list("name", 'description')), 400
+        return jsonify(message='Name or description is required', parameter=list("name", 'description')), 400
 
     if title:
         item.title = title
@@ -1196,12 +1195,12 @@ def delete_bucket_item(user, bucket_id, item_id):
     bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
     
     if bucket == None:
-        return jsonify(error='Bucket does not extist'), 404
+        return jsonify(error='The bucket you requested does not extist'), 404
 
     item = BucketItem.query.filter_by(bucket_id = bucket.id, id = item_id).first()
 
     if item == None:
-        return jsonify(error='BucketItem does not extist'), 404
+        return jsonify(error='Bucket item does not extist'), 404
     
     db.session.delete(item)
     db.session.commit()
