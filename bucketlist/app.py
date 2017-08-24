@@ -10,10 +10,11 @@ from passlib.hash import sha256_crypt
 
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = os.environ.get('APP_SECRET')
+app.config['SECRET_KEY'] = os.getenv('APP_SECRET')
+app.config['REQUESTS_ORIGIN'] = os.getenv('REQUESTS_ORIGIN')
 app.config['TOKEN_NAME'] = 'X-Token'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 
 Swagger(app)
 
