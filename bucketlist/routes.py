@@ -558,7 +558,17 @@ def get_bucketlists(user):
         _bucket = dict(id=bucket.id, name=bucket.name, description=bucket.description)
         bucket_list.append(_bucket)
 
-    return jsonify(bucket_list)
+    previous = '/bucketlists?limit={}'.format(limit)
+    next = '/bucketlists?limit={}'.format(limit)
+
+    if page >= 0:
+        next = next + '&page={}'.format(page + 1)
+        previous = previous + '&page={}'.format(page - 1)
+
+    if page == 0:
+        previous = ''
+
+    return jsonify(buckets=bucket_list, paging=dict(previous=previous, next=next))
 
 @app.route("/bucketlists", methods = ['POST', 'OPTIONS'])
 @allow_cross_origin
@@ -739,6 +749,7 @@ def get_bucketlist(user, id):
     bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description)
     bucket_result['items'] = list()
     limit, page = get_pagination_params(request)
+    offset = limit * page
     query = request.args.get('q')
     items = BucketItem.query.filter(BucketItem.bucket_id == bucket.id)
 
@@ -746,12 +757,22 @@ def get_bucketlist(user, id):
         query = query.replace(' ', '%')
         items = items.filter(func.lower(BucketItem.title).like('%' + func.lower(query) + '%'))
 
-    items = items.order_by(desc(BucketItem.created_at)).limit(limit).offset(limit * page)
+    items = items.order_by(desc(BucketItem.created_at)).limit(limit).offset(offset)
     
     for item in items:
         bucket_result['items'].append(item.dict())
 
-    return jsonify(bucket_result)
+    previous = '/bucketlists/{}?limit={}'.format(id, limit)
+    next = '/bucketlists/{}?limit={}'.format(id, limit)
+
+    if page >= 0:
+        next = next + '&page={}'.format(page + 1)
+        previous = previous + '&page={}'.format(page - 1)
+
+    if page == 0:
+        previous = ''
+    
+    return jsonify(bucket = bucket_result, paging = dict(previous=previous, next=next))
 
 @app.route("/bucketlists/<int:id>", methods = ['PUT', 'OPTIONS'])
 @allow_cross_origin
