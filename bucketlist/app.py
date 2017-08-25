@@ -87,7 +87,7 @@ class Bucket(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
-    items = db.relationship('BucketItem', backref = db.backref("bucket", lazy = True))
+    items = db.relationship('BucketItem', cascade="delete", backref = db.backref("bucket", lazy = True))
 
     def __init__(self, name, description, owner = None):
         self.name = name
