@@ -12,6 +12,8 @@ services:
 env:
   - TEST_DATABASE_URL=postgresql://localhost/bucketlist_testdb
   - DATABASE_URL=postgresql://localhost/bucketlist_testdb
+  - APP_SECRET=iigMnxy7y7dFJppmd3JgZRzOUYLgmjaXX 
+  - REQUESTS_ORIGIN=*
 
 before_script:
   - psql -c 'create database bucketlist_testdb;' -U postgres
