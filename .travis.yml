@@ -10,10 +10,10 @@ services:
   - postgresql
 
 env:
-  - TEST_DATABASE_URL=postgresql://localhost/bucketlist
+  - TEST_DATABASE_URL=postgresql://localhost/bucketlist_testdb
 
 before_script:
-  - psql -c 'create database bucketlist;' -U postgres
+  - psql -c 'create database bucketlist_testdb;' -U postgres
 
 script:
   - nosetests --with-coverage --cover-package=bucketlist

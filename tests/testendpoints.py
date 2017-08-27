@@ -1,8 +1,8 @@
 import unittest, datetime
 from bucketlist import create_app
-import json
+import json, os
 
-app = create_app("testing")
+app = create_app(testing = True)
 from bucketlist.views import *
 
 with app.app_context():   
@@ -30,6 +30,9 @@ class TestEndpoints(unittest.TestCase):
             db.session.close()
             db.drop_all()
 
+    def test_config(self):
+        self.assertEqual(os.getenv('TEST_DATABASE_URL'), app.config.get('SQLALCHEMY_DATABASE_URI'))
+
     def test_can_create_account(self):
         res = self.client().post('/auth/register', data = self.user_data)
         self.assertEqual(res.status_code, 201)
@@ -47,7 +50,7 @@ class TestEndpoints(unittest.TestCase):
         token = self.login()
         res = self.client().post('/auth/logout', headers={"X-Token": token})
         self.assertEqual(res.status_code, 200)
-    
+
     def test_can_reset_password(self):
         # login to get token
         token = self.login()
