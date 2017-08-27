@@ -10,7 +10,7 @@ services:
   - postgresql
 
 env:
-  - DATABASE_URL=postgresql://localhost/bucketlist
+  - TEST_DATABASE_URL=postgresql://localhost/bucketlist
 
 before_script:
   - psql -c 'create database bucketlist;' -U postgres

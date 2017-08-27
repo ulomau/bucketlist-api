@@ -22,10 +22,6 @@ class TestEndpoints(unittest.TestCase):
 
         with app.app_context():   
             db.create_all()
-    
-    # def tearDown(self):
-    #     with app.app_context():   
-    #         db.drop_all()
 
     @classmethod
     def tearDownClass(cls):
