@@ -1,6 +1,12 @@
 import unittest, datetime
-from bucketlist import *
+from bucketlist import create_app
 import json
+
+app = create_app("testing")
+from bucketlist.views import *
+
+with app.app_context():   
+    db.drop_all()
 
 class TestEndpoints(unittest.TestCase):
 
@@ -14,14 +20,19 @@ class TestEndpoints(unittest.TestCase):
             "password": "1234567890"
         }
 
-        with app.app_context():
+        with app.app_context():   
             db.create_all()
+    
+    # def tearDown(self):
+    #     with app.app_context():   
+    #         db.drop_all()
 
     @classmethod
     def tearDownClass(cls):
         with app.app_context():
             db.session.expunge_all()
             db.session.close()
+            db.drop_all()
 
     def test_can_create_account(self):
         res = self.client().post('/auth/register', data = self.user_data)
@@ -82,7 +93,7 @@ class TestEndpoints(unittest.TestCase):
         token = self.login()
         res = self.client().get('/bucketlists', headers={"X-Token": token})
         buckets = json.loads(res.data.decode())
-        res2 = self.client().put('/bucketlists/'+str(buckets[0]['id']), data={'name':"The bucket"}, headers={"X-Token": token})
+        res2 = self.client().put('/bucketlists/'+str(buckets['bucketlists'][0]['id']), data={'name':"The bucket"}, headers={"X-Token": token})
         self.assertEqual(res2.status_code, 200)
 
     def test_can_delete_bucket(self):

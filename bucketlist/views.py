@@ -1,115 +1,15 @@
 """This module contains the routes for the application"""
 
-import random, string, datetime
-import jwt
 from flask import request, jsonify, make_response, render_template
 from sqlalchemy import func, or_, desc, and_
-from functools import wraps
-from .app import *
 from dateutil.parser import parse
-import re
+import re, datetime, jwt
+
+from .utils import allow_cross_origin, authenticate, get_pagination_params, get_pagination_params, get_request_body
+from . import app
+from .models import db, BucketList, BucketItem, User
 
 # public access
-
-def add_response_headers(headers={}):
-    """This decorator adds the headers passed in to the response"""
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            resp = make_response(f(*args, **kwargs))
-            h = resp.headers
-            for header, value in headers.items():
-                h[header] = value
-            return resp
-        return decorated_function
-    return decorator
-
-
-def allow_cross_origin(f):
-    @wraps(f)
-    @add_response_headers({
-        'Access-Control-Allow-Headers': app.config['TOKEN_NAME'] + ', Content-Type',
-        'Access-Control-Allow-Origin': app.config['REQUESTS_ORIGIN'],
-        'Access-Control-Allow-Methods': 'GET, OPTIONS, POST, PUT, DELETE'
-    })
-    def decorated_function(*args, **kwargs):
-        return f(*args, **kwargs)
-    return decorated_function
-
-def authenticate(f):
-    @wraps(f)
-    def inner(*args, **kwargs):
-
-        if request.method == 'OPTIONS':
-            return f(None, *args, **kwargs)
-        token = None
-        if app.config['TOKEN_NAME'] in request.headers:
-            token = request.headers[app.config['TOKEN_NAME']]
-
-        if not token:
-            token = request.args.get('token')
-
-        if not token:
-            return jsonify(message="Missing token"), 401
-
-        try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            
-        except:
-            return jsonify(message="Invalid token"), 401
-
-        user = User.query.get(data['user_id'])
-        now = datetime.datetime.utcnow()
-        
-        if not user:
-            return jsonify(message="Invalid token"), 401
-
-        if not token == user.token:
-            return jsonify(message="Invalid token"), 401
-
-        if now > user.token_expiry:
-            return jsonify(message="Expired token"), 401
-
-        if not user:
-            return jsonify(message="Invalid token"), 401
-
-        return f(user, *args, **kwargs)
-    return inner
-
-def get_request_body(request):
-    """Returns the request body."""
-    content_type = request.content_type
-    
-    if 'application/json' in content_type:
-        return request.json
-    return request.form
-
-def get_user_id(request):
-    """Gets user_id from the query string or from the request body, for POST requests."""
-    if request.method == 'POST':
-        return get_request_body(request).get('user_id')
-    
-    return request.args.get('user_id')
-
-def get_pagination_params(request):
-    limit = request.args.get('limit')
-    page = request.args.get('page')
-    
-    try:
-        limit = int(limit)
-    except:
-        limit = 12
-
-    try:
-        page = int(page)
-    except:
-         page = 0
-    
-    limit = 12 if limit < 0 else limit
-    page = 0 if page < 0 else page
-
-    return limit, page
-
 @app.route('/')
 def index():
     return render_template("index.html")
@@ -235,7 +135,7 @@ def register():
 
     created_user = User.query.filter_by(email = email).first()
     
-    return jsonify(), 201
+    return jsonify(created_user.dict()), 201
 
 @app.route("/auth/login", methods=['POST', 'OPTIONS'])
 @allow_cross_origin
@@ -393,10 +293,10 @@ def logout(user):
         return jsonify()
 
     expiry = datetime.datetime.utcnow() - datetime.timedelta(minutes=20)
-    #user.token = ''
+    
     user.token_expiry = expiry
     db.session.commit()
-    return jsonify()
+    return jsonify(message='Logout was successful')
 
 @app.route("/auth/reset-password", methods=['POST', 'OPTIONS'])
 @allow_cross_origin
@@ -468,7 +368,7 @@ def reset_password(user):
     user.set_password(new_password)
     db.session.commit()
 
-    return jsonify()
+    return jsonify(message="Password was changed successfully")
 
 # private access
 
@@ -477,10 +377,10 @@ def reset_password(user):
 @authenticate
 def get_bucketlists(user):
     """
-    Returns a list of buckets
+    Returns a list of bucketlists
     ---
     tags:
-        - Buckets
+        - bucketlists
     consumes:
         - "application/json"
     produces:
@@ -545,18 +445,18 @@ def get_bucketlists(user):
 
     offset = page * limit
 
-    buckets = Bucket.query.filter(Bucket.user_id == user.id)
+    bucketlists = BucketList.query.filter(BucketList.user_id == user.id)
 
     if query:
         query = query.replace(' ', '%')
-        buckets = buckets.filter(func.lower(Bucket.name).like('%' + func.lower(query) + '%'))
+        bucketlists = bucketlists.filter(func.lower(BucketList.name).like('%' + func.lower(query) + '%'))
     
-    buckets = buckets.order_by(desc(Bucket.created_at)).limit(limit).offset(offset)
+    bucketlists = bucketlists.order_by(desc(BucketList.created_at)).limit(limit).offset(offset)
     bucket_list = list()
 
-    for bucket in buckets:
-        _bucket = dict(id=bucket.id, name=bucket.name, description=bucket.description)
-        bucket_list.append(_bucket)
+    for bucketlist in bucketlists:
+        _bucketlist = bucketlist.dict()
+        bucket_list.append(_bucketlist)
 
     previous = '/bucketlists?limit={}'.format(limit)
     next = '/bucketlists?limit={}'.format(limit)
@@ -568,7 +468,7 @@ def get_bucketlists(user):
     if page == 0:
         previous = ''
 
-    return jsonify(buckets=bucket_list, paging=dict(previous=previous, next=next))
+    return jsonify(bucketlists=bucket_list, paging=dict(previous=previous, next=next))
 
 @app.route("/bucketlists", methods = ['POST', 'OPTIONS'])
 @allow_cross_origin
@@ -578,7 +478,7 @@ def create_bucketlist(user):
     Creates a new bucket
     ---
     tags:
-        - Buckets
+        - bucketlists
     consumes:
         - "application/json"
     produces:
@@ -644,16 +544,16 @@ def create_bucketlist(user):
     if not description:
         return jsonify(message='Bucket description is missing', parameter='description'), 400
     
-    bucket = Bucket.query.filter(func.lower(Bucket.name) == func.lower(name)).first()
+    bucketlist = BucketList.query.filter(func.lower(BucketList.name) == func.lower(name)).first()
     
-    if bucket:
+    if bucketlist:
         return jsonify(message='A bucket with that name already exists', parameter='name'), 400
 
-    bucket = Bucket(name, description, owner = user)
-    db.session.add(bucket)
+    bucketlist = BucketList(name, description, owner = user)
+    db.session.add(bucketlist)
     db.session.commit()
 
-    return jsonify(bucket.dict()), 201
+    return jsonify(bucketlist.dict()), 201
 
 @app.route("/bucketlists/<int:id>", methods = ['GET', 'OPTIONS'])
 @allow_cross_origin
@@ -663,7 +563,7 @@ def get_bucketlist(user, id):
     Returns a bucket along with a list of its items
     ---
     tags:
-        - Buckets
+        - bucketlists
     consumes:
         - "application/json"
     produces:
@@ -741,17 +641,17 @@ def get_bucketlist(user, id):
     if request.method == 'OPTIONS' or not user:
         return jsonify()
 
-    bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
+    bucketlist = BucketList.query.filter_by(user_id = user.id, id = id).first()
 
-    if bucket == None:
+    if bucketlist == None:
         return jsonify(message = 'The bucket you requested does not exist'), 404
 
-    bucket_result = dict(id=bucket.id, name=bucket.name, description=bucket.description)
+    bucket_result = bucketlist.dict()
     bucket_result['items'] = list()
     limit, page = get_pagination_params(request)
     offset = limit * page
     query = request.args.get('q')
-    items = BucketItem.query.filter(BucketItem.bucket_id == bucket.id)
+    items = BucketItem.query.filter(BucketItem.bucketlist_id == BucketList.id)
 
     if query:
         query = query.replace(' ', '%')
@@ -772,7 +672,7 @@ def get_bucketlist(user, id):
     if page == 0:
         previous = ''
     
-    return jsonify(bucket = bucket_result, paging = dict(previous=previous, next=next))
+    return jsonify(bucketlist = bucket_result, paging = dict(previous=previous, next=next))
 
 @app.route("/bucketlists/<int:id>", methods = ['PUT', 'OPTIONS'])
 @allow_cross_origin
@@ -782,7 +682,7 @@ def edit_bucketlist(user, id):
     Edits a bucket
     ---
     tags:
-        - Buckets
+        - bucketlists
     consumes:
         - "application/json"
     produces:
@@ -847,14 +747,14 @@ def edit_bucketlist(user, id):
     body = get_request_body(request)
     name = body.get('name')
     description = body.get('description')
-    bucket = Bucket.query.filter(and_(func.lower(Bucket.name) == func.lower(name)), Bucket.id != id).first()
+    bucketlist = BucketList.query.filter(and_(func.lower(BucketList.name) == func.lower(name)), BucketList.id != id).first()
     
-    if bucket:
+    if bucketlist:
         return jsonify(message='A bucket with that name already exists', parameter='name'), 400
 
-    bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
+    bucketlist = BucketList.query.filter_by(user_id = user.id, id = id).first()
 
-    if bucket == None:
+    if bucketlist == None:
         return jsonify(message = 'The bucket you requested does not exist'), 404
     
     
@@ -863,12 +763,12 @@ def edit_bucketlist(user, id):
         return jsonify(message='At least one parameter is required', parameter=list("name", 'description')), 400
 
     if name:
-        bucket.name = name
+        bucketlist.name = name
     if description:
-        bucket.description = description
+        bucketlist.description = description
 
     db.session.commit()
-    return jsonify(bucket.dict())
+    return jsonify(bucketlist.dict())
 
 @app.route("/bucketlists/<int:id>", methods = ['DELETE', 'OPTIONS'])
 @allow_cross_origin
@@ -878,7 +778,7 @@ def delete_bucketlist(user, id):
     Deletes a bucket
     ---
     tags:
-        - Buckets
+        - bucketlists
     consumes:
         - "application/json"
     produces:
@@ -921,14 +821,14 @@ def delete_bucketlist(user, id):
     if request.method == 'OPTIONS':
         return jsonify()
 
-    bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
+    bucketlist = BucketList.query.filter_by(user_id = user.id, id = id).first()
 
-    if bucket == None:
+    if bucketlist == None:
         return jsonify(message = 'The bucket you requested does not exist'), 404
 
-    db.session.delete(bucket)
+    db.session.delete(bucketlist)
     db.session.commit()
-    return jsonify(id=bucket.id) 
+    return jsonify(id=bucketlist.id) 
 
 @app.route("/bucketlists/<int:id>/items", methods=['POST', 'OPTIONS'])
 @allow_cross_origin
@@ -1005,9 +905,9 @@ def add_bucket_item(user, id):
     if request.method == 'OPTIONS':
         return jsonify()
 
-    bucket = Bucket.query.filter_by(user_id = user.id, id = id).first()
+    bucketlist = BucketList.query.filter_by(user_id = user.id, id = id).first()
     
-    if bucket == None:
+    if bucketlist == None:
         return jsonify(error='The bucket you requested does not exist'), 404
 
     body = get_request_body(request)
@@ -1029,15 +929,15 @@ def add_bucket_item(user, id):
     except:
         return jsonify(message='Due date is invalid', parameter="due_date"), 400
 
-    item = BucketItem(title, description, due_date, bucket = bucket)
+    item = BucketItem(title, description, due_date, bucketlist = bucketlist)
     db.session.add(item)
     db.session.commit()
     return jsonify(item.dict()), 201
 
-@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['PUT', 'OPTIONS'])
+@app.route("/bucketlists/<int:bucketlist_id>/items/<int:item_id>", methods=['PUT', 'OPTIONS'])
 @allow_cross_origin
 @authenticate
-def edit_bucket_item(user, bucket_id, item_id):
+def edit_bucket_item(user, bucketlist_id, item_id):
     """
     Edits an item in a specified bucket
     ---
@@ -1053,7 +953,7 @@ def edit_bucket_item(user, bucket_id, item_id):
           description: The user's token
           required: true
           type: string
-        - name: bucket_id
+        - name: bucketlist_id
           in: path
           description: Bucket id
           required: true
@@ -1116,12 +1016,12 @@ def edit_bucket_item(user, bucket_id, item_id):
     if request.method == 'OPTIONS':
         return jsonify()
 
-    bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
+    bucketlist = BucketList.query.filter_by(user_id = user.id, id = bucketlist_id).first()
     
-    if bucket == None:
+    if bucketlist == None:
         return jsonify(error='Bucket does not extist'), 404
 
-    item = BucketItem.query.filter_by(bucket_id = bucket.id, id = item_id).first()
+    item = BucketItem.query.filter_by(bucketlist_id = bucketlist.id, id = item_id).first()
 
     if item == None:
         return jsonify(error='BucketItem does not extist'), 404
@@ -1157,10 +1057,10 @@ def edit_bucket_item(user, bucket_id, item_id):
     
     return jsonify(item.dict())
 
-@app.route("/bucketlists/<int:bucket_id>/items/<int:item_id>", methods=['DELETE', 'OPTIONS'])
+@app.route("/bucketlists/<int:bucketlist_id>/items/<int:item_id>", methods=['DELETE', 'OPTIONS'])
 @allow_cross_origin
 @authenticate
-def delete_bucket_item(user, bucket_id, item_id):
+def delete_bucket_item(user, bucketlist_id, item_id):
     """
     Deletes an item from a specified bucket
     ---
@@ -1176,7 +1076,7 @@ def delete_bucket_item(user, bucket_id, item_id):
           description: The user's token
           required: true
           type: string
-        - name: bucket_id
+        - name: bucketlist_id
           in: path
           description: Bucket id
           required: true
@@ -1213,12 +1113,12 @@ def delete_bucket_item(user, bucket_id, item_id):
     if request.method == 'OPTIONS':
         return jsonify()
 
-    bucket = Bucket.query.filter_by(user_id = user.id, id = bucket_id).first()
+    bucketlist = BucketList.query.filter_by(user_id = user.id, id = bucketlist_id).first()
     
-    if bucket == None:
+    if bucketlist == None:
         return jsonify(error='The bucket you requested does not extist'), 404
 
-    item = BucketItem.query.filter_by(bucket_id = bucket.id, id = item_id).first()
+    item = BucketItem.query.filter_by(bucketlist_id = BucketList.id, id = item_id).first()
 
     if item == None:
         return jsonify(error='Bucket item does not extist'), 404
