@@ -12,7 +12,7 @@ services:
 env:
   - DATABASE_URL=postgresql://localhost/bucketlist_testdb
   - APP_SECRET=iigMnxy7y7dFJppmd3JgZRzOUYLgmjaXX 
-  - REQUESTS_ORIGIN=*
+  - REQUESTS_ORIGIN="*"
   - TEST_DATABASE_URL=postgresql://localhost/bucketlist_testdb
 
 before_script:

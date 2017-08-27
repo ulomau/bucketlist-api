@@ -7,7 +7,7 @@ from .models import db
 swagger = Swagger()
 migrate = Migrate()
 
-def create_app(testing=False):
+def create_app(testing):
     app = Flask(__name__)
 
     app.config['SECRET_KEY'] = os.getenv('APP_SECRET')
@@ -15,7 +15,7 @@ def create_app(testing=False):
     app.config['TOKEN_NAME'] = 'X-Token'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 
-    if not testing:
+    if testing:
         app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('TEST_DATABASE_URL')
     else:
         app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')

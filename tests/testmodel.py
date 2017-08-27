@@ -2,7 +2,7 @@ import unittest, datetime
 from bucketlist import create_app
 import json
 
-app = create_app(testing=True)
+app = create_app(True)
 from bucketlist.views import *
 
     
