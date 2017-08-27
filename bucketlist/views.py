@@ -651,7 +651,7 @@ def get_bucketlist(user, id):
     limit, page = get_pagination_params(request)
     offset = limit * page
     query = request.args.get('q')
-    items = BucketItem.query.filter(BucketItem.bucketlist_id == BucketList.id)
+    items = BucketItem.query.filter(BucketItem.bucketlist_id == bucketlist.id)
 
     if query:
         query = query.replace(' ', '%')
