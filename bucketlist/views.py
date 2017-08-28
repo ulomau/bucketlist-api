@@ -1050,7 +1050,6 @@ def edit_bucket_item(user, bucketlist_id, item_id):
         item.due_date = due_date
     
     if is_complete != None:
-        print(bool(is_complete))
         item.is_complete = bool(is_complete)
     
     db.session.commit()
