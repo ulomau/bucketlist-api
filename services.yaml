@@ -1,0 +1,51 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: frontend
+  namespace: default
+  labels:
+    run: frontend
+spec:
+  ports:
+      - protocol: TCP
+        port: 80
+        targetPort: 3000
+  selector:
+    run: frontend
+  type: LoadBalancer
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: api
+  namespace: default
+  labels:
+    run: api
+spec:
+  ports:
+      - protocol: TCP
+        port: 5000
+        targetPort: 5000
+  selector:
+    run: api
+  type: LoadBalancer
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: database
+  namespace: default
+  labels:
+    run: database
+spec:
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  selector:
+    run: database
+  type: LoadBalancer
