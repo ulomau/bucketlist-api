@@ -1,5 +1,5 @@
 kind: Deployment
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 metadata:
   name: frontend
   namespace: default
@@ -17,15 +17,13 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: gcr.io/terraform-310215/fe-tier1:v1
+          image: gcr.io/terraform-310215/fe-tier1:latest
           ports:
             - containerPort: 3000
               protocol: TCP
 
----
-
 kind: Deployment
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 metadata:
   name: api
   namespace: default
@@ -43,7 +41,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: gcr.io/terraform-310215/be-api-tier2:v1
+          image: gcr.io/terraform-310215/be-api-tier2:latest
           env:
             - name: APP_CONFIG
               value: "development"
@@ -81,7 +79,7 @@ spec:
     spec:
       containers:
         - name: database
-          image: gcr.io/terraform-310215/db-tier3:v1
+          image: gcr.io/terraform-310215/db-tier3:latest
           ports:
             - containerPort: 5432
               protocol: TCP
