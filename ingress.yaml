@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/ingress.class: gce
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  name: ingress
+  namespace: default
+spec:
+  rules:
+    - host: frontend.uloma.cyou
+      http:
+        paths:
+          - backend:
+              serviceName: frontend
+              servicePort: 80
+            path: /
+    - host: api.uloma.cyou
+      http:
+        paths:
+          - backend:
+              serviceName: api
+              servicePort: 5000
+            path: /
+    - host: database.uloma.cyou
+      http:
+        paths:
+          - backend:
+              serviceName: database
+              servicePort: 5432
+            path: /
+
+  tls:
+    - hosts:
+        - bucketlist.uloma.cyou
+        - api.uloma.cyou
+        - database.uloma.cyou
+
+      secretName: balena-certs
+
