@@ -1,0 +1,87 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: frontend
+  namespace: default
+  labels:
+    run: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: frontend
+  template:
+    metadata:
+      labels:
+        run: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: gcr.io/terraform-310215/fe-tier1:v1
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+
+---
+
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: api
+  namespace: default
+  labels:
+    run: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: api
+  template:
+    metadata:
+      labels:
+        run: api
+    spec:
+      containers:
+        - name: api
+          image: gcr.io/terraform-310215/be-api-tier2:v1
+          env:
+            - name: APP_CONFIG
+              value: "development"
+            - name: DATABASE_URL
+              value: "postgresql://postgres@database:5432/reactdb"
+            - name: TEST_DATABASE_URL
+              value: "postgresql://postgres@database:5432/testdb"
+            - name: APP_SECRET
+              value: "iigMnxLgWdFJppmd3JgZRzOUYLgmjaXX"
+            - name: REQUESTS_ORIGIN
+              value: "*"
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: database
+  namespace: default
+  labels:
+    run: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: database
+  template:
+    metadata:
+      labels:
+        run: database
+    spec:
+      containers:
+        - name: database
+          image: gcr.io/terraform-310215/db-tier3:v1
+          ports:
+            - containerPort: 5432
+              protocol: TCP
