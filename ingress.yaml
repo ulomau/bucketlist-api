@@ -9,21 +9,21 @@ metadata:
   namespace: default
 spec:
   rules:
-    - host: frontend.uloma.cyou
+    - host: frontend.uloma.cyou.com
       http:
         paths:
           - backend:
               serviceName: frontend
               servicePort: 80
             path: /
-    - host: api.uloma.cyou
+    - host: api.uloma.cyou.com
       http:
         paths:
           - backend:
               serviceName: api
               servicePort: 5000
             path: /
-    - host: database.uloma.cyou
+    - host: database.uloma.cyou.com
       http:
         paths:
           - backend:
@@ -33,9 +33,7 @@ spec:
 
   tls:
     - hosts:
-        - bucketlist.uloma.cyou
-        - api.uloma.cyou
-        - database.uloma.cyou
-
+        - frontend.uloma.cyou.com
+        - api.uloma.cyou.com
+        - database.uloma.cyou.com
       secretName: balena-certs
-
